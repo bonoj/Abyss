@@ -1,6 +1,5 @@
-// EUROPA-01: isolated experimental scene, not mounted by Shell yet.
+// EUROPA-01: opt-in experimental scene via ?world=europa.
 // Illustrative ice terrain; no calibrated Europan material composition.
-import * as T from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 import {createHermeticon} from '../../arcana/hermeticon.js';
 import {createTerrain} from '../../arcana/terrain.js';
 
