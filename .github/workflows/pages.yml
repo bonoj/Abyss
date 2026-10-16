@@ -1,6 +1,11 @@
 name: Publish Abyss
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'sieve/**'
+      - '.github/workflows/pages.yml'
 
 permissions:
   contents: read
