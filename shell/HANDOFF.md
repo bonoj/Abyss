@@ -18,6 +18,8 @@ Shell is a self-contained first-party runtime snapshot, with Three.js 0.180.0 fr
 Changes to `shell/**` trigger the Pages workflow, which preserves source experiments but compiles Shell's local dependency graph into `site/shell/assets/main.<BUILD_SHA>.js` using esbuild 0.25.12. Published `site/shell/main.js` is a tiny loader for that immutable asset; Shell HTML fetches `../build.json` and imports the SHA-qualified loader. No local runtime modules are fetched independently. The publisher writes `/Abyss/build.json` with the deployment commit SHA. `shell/athanor/athanor.js` fetches it using `../../build.json` and displays its first 8 characters. Match this number against the successful workflow commit before calling the running build verified. The workflow checks packaging, JS syntax, public manifest, and HTML reachability, not browser runtime execution.
 
 ## Recovery
+For GitHub write failures, follow the established shared [Gate protocol](https://github.com/bonoj/Gate/blob/main/README.md): classify the exact failure, use permitted incremental writes or Git Data recovery when appropriate, read back, and verify. Gate governs delivery recovery; Abyss's own Pages workflow remains authoritative for publishing Shell. Do not duplicate Gate, invent a new protocol, or bypass explicit restrictions.
+
 If Shell fails to wake, check the console and the module graph, then workflow logs. Restore a known-good Shell tree from Abyss history if needed. Do not change Hermeticon or other Abyss experiments to fix Shell. Avoid service workers and shared-origin storage collisions.
 
 ## Current Entropy state — 2026-10-16
