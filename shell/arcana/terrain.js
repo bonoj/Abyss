@@ -276,6 +276,34 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
   if(changed)extractTerrainMesh({x0,x1,z0,z1});
   return {magnitude:e,radius,depth,rim,changed,dirtyChunks:terrainPerf.lastDirtyChunks};
  }
+ // Discrete signed-field node extraction for experimental material accounting.
+ // Counts positive lattice nodes, NOT volume or physical mass. Changes the
+ // authoritative field and rebuilds affected chunks; repeated cuts remove zero.
+ function inventoryNodes(){
+  const counts={};
+  for(let z=0;z<NZ;z++)for(let y=0;y<NY;y++)for(let x=0;x<NX;x++)
+   if(field[id(x,y,z)]>0){const key=String(materialAt(xp(x),yp(y),zp(z)).id);counts[key]=(counts[key]||0)+1}
+  return counts;
+ }
+ function extractNodes({x,z,radius=0.8,yTop=3.6,yBottom=-3.6}={}){
+  if(![x,z,radius,yTop,yBottom].every(Number.isFinite)||radius<=0||yBottom>=yTop)throw Error('invalid extraction geometry');
+  const removed={},stepX=2*WORLD_HALF/(NX-1),stepZ=2*WORLD_HALF/(NZ-1);
+  const x0=Math.max(1,Math.floor((x-radius+WORLD_HALF)/stepX)),x1=Math.min(NX-2,Math.ceil((x+radius+WORLD_HALF)/stepX));
+  const z0=Math.max(1,Math.floor((z-radius+WORLD_HALF)/stepZ)),z1=Math.min(NZ-2,Math.ceil((z+radius+WORLD_HALF)/stepZ));
+  let count=0;
+  for(let iz=z0;iz<=z1;iz++)for(let ix=x0;ix<=x1;ix++){
+   if(Math.hypot(xp(ix)-x,zp(iz)-z)>radius)continue;
+   for(let iy=1;iy<NY-1;iy++){
+    const Y=yp(iy),index=id(ix,iy,iz);
+    if(Y<yBottom||Y>yTop||field[index]<=0)continue;
+    const key=String(materialAt(xp(ix),Y,zp(iz)).id);
+    removed[key]=(removed[key]||0)+1;
+    field[index]=-Math.max(0.01,Math.abs(field[index]));count++;
+   }
+  }
+  if(count)extractTerrainMesh({x0,x1,z0,z1});
+  return {schema:'terrain-extraction-nodes/v0',removed,count,units:'positive signed-field lattice nodes',calibratedVolume:false};
+ }
  regenerate();
- return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,sphereContact,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,testBorehole,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
+ return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,inventoryNodes,extractNodes,sphereContact,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,testBorehole,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
 }
