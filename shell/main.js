@@ -45,7 +45,7 @@ if(europa){
    const y=mapMode?0:section.yTop-(section.yTop-section.yBottom)*j/(section.rows-1);
    const z=mapMode?0:section.zStart+(section.zEnd-section.zStart)*i/(section.columns-1);
    const top=1.15+0.13*Math.sin(section.x*.47+741*.001)*Math.cos(z*.31);
-   ctx.fillStyle=!mapMode&&y>top?'#091725':colors[cell.unit];
+   ctx.fillStyle=section.occupancy?.[j]?.[i]===false?'#091725':colors[cell.unit];
    ctx.fillRect(i*4,j*4,4,4);
   }));
  };
