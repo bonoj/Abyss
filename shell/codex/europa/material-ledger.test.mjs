@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {createMaterialLedger} from './material-ledger.js';
+const a=createMaterialLedger({ice:100,salt:10});
+a.transfer('inPlace','recovered',{ice:15,salt:2});
+a.transfer('inPlace','dispersed',{ice:4,salt:1});
+a.transfer('inPlace','lost',{ice:1});
+a.introduce({ice:3});
+const r=a.inspect();
+assert.equal(r.balanced,true);
+assert.equal(r.state.inPlace.ice,80);
+assert.equal(r.state.recovered.ice,18);
+assert.equal(r.state.introduced.ice,3);
+assert.throws(()=>a.transfer('inPlace','recovered',{ice:1000}));
+assert.throws(()=>a.introduce({alien:1}));
+assert.deepEqual(a.inspect().residual,{ice:0,salt:0});
+console.log('PASS Europa material accounting');
