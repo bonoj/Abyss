@@ -5,7 +5,8 @@
 - Canonical: https://bonoj.github.io/Abyss/shell/
 - Pipeline: https://github.com/bonoj/Abyss/actions/workflows/pages.yml
 - Commits: https://github.com/bonoj/Abyss/commits/main/
-- Shell `index.html` loads `./main.js`, which loads Athanor and mounts `./codex/genesis/world.js`.
+- Shell `index.html` loads `./main.js`, which loads Athanor and mounts `./codex/entropy/world.js`.
+- `codex/genesis/world.js` is the preserved original. `codex/entropy/world.js` is a copied, independently editable world and is the currently mounted world. Shell title remains SHELL.
 - `athanor/`: host, render, scheduling, inspection; `arcana/`: reusable capabilities; `codex/<world>/world.js`: authored world; `main.js`: bootstrap and world selection.
 - Former `codex/sieve/world.js` was byte-identical to `codex/genesis/world.js`; Genesis is canonical. Former `sieve/compose.js` was a redundant bootstrap and has been replaced by `main.js`.
 - Unused outreach data `sieve/connects.js` and `sieve/connect-deck.json` are preserved in `archive/sieve/`, outside the runtime graph. They are not world definitions. Outreach workspace links in HTML still point to the Hermeticon project.
