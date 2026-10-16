@@ -4,6 +4,8 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
  if(!(mass>0&&force>0&&reach>0))throw Error('positive mass, force and reach required');
  let anchor=null,phase='awaiting support',forceX=0,plantCount=0,poweredSteps=0;
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
+ let swingTarget=null,swingProgress=0,swingCount=0,releaseCount=0,failedPlants=0;
+ const strokeEnd=reach*.72,lead=reach*.55,swingRate=2.2;
  function sample(body,{dt,acceleration,contact}){
   forceX=0;
   if(!contact?.supported){unsupportedSteps++;phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
