@@ -4,6 +4,7 @@ import {createPlantedFoot} from './planted-foot.js';
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
+ let connectedSteps=0,disconnectedSteps=0,tensileSteps=0,peakTension=0;
  let strutForceTotal=0,strutPeakForce=0,strutLoadedSteps=0,lastStrut=null;
  let geometrySteps=0,overextendedSteps=0,maxHorizontal=0,maxVerticalCorrection=0,largeCorrectionCount=0,lastGeometry=null;
  const geometryEvents=[];
@@ -38,15 +39,23 @@ export function createAlternatingFeet({surface}={}){
     const lengthRate=body.vx*nx+body.vy*ny+body.vz*nz;
     const compression=Math.max(0,restLength-length);
     const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
-    force.x+=magnitude*nx;force.y+=magnitude*ny;force.z+=magnitude*nz;
+    // Finite tensile linkage prevents an anchored foot from becoming an infinite reach motor.
+    const maxLength=1.04,tensionStiffness=240,tensionDamping=24,maxTension=100;
+    const tension=Math.min(maxTension,Math.max(0,tensionStiffness*Math.max(0,length-maxLength)+tensionDamping*Math.max(0,lengthRate)));
+    const connected=length<=maxLength;
+    if(connected)connectedSteps++;else disconnectedSteps++;
+    if(tension>0){tensileSteps++;peakTension=Math.max(peakTension,tension);}
+    // Stance drive is transmitted only through a connected leg, not by anchor ownership.
+    if(!connected){force.x=0;force.y=0;force.z=0;}
+    force.x+=(magnitude-tension)*nx;force.y+=(magnitude-tension)*ny;force.z+=(magnitude-tension)*nz;
     strutForceTotal+=magnitude;strutPeakForce=Math.max(strutPeakForce,magnitude);
     if(magnitude>0)strutLoadedSteps++;
-    lastStrut={time:body.time,active,length,restLength,compression,lengthRate,magnitude,direction:[nx,ny,nz]};
+    lastStrut={time:body.time,active,length,restLength,compression,lengthRate,magnitude,tension,connected,maxLength,direction:[nx,ny,nz]};
    }
   }
   return force;
  }
- function hasFootSupport(){return feet.some(f=>!!f.getAnchor());}
+ function hasFootSupport(){return feet.some(f=>!!f.getAnchor())&&!!lastStrut?.connected;}
  function constrain(body,context){
   const planted=feet.map(f=>!!f.getAnchor());
   const count=planted.filter(Boolean).length;
@@ -73,9 +82,9 @@ export function createAlternatingFeet({surface}={}){
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
-   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||hasFootSupport(),skipTether:true});
+   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||feet.some(f=>!!f.getAnchor()),skipTether:true});
   });
  }
- function inspect(){return {name:'alternating feet',mode:'finite-force unilateral compliant strut; single stance drive',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'finite-force unilateral compliant strut; single stance drive',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,connectedSteps,disconnectedSteps,tensileSteps,peakTension,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,hasFootSupport,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
