@@ -73,7 +73,7 @@ export function createEntropy(){
  const gravity=createGravitySystem({components:[uniformGravity({id:'surface',y:-9.8})]});
  world.gravity=gravity;
  const contact=createTerrainContact({terrain,profile:'dissipative'});
- const drive=createPlantedFoot();
+ const drive=createPlantedFoot({surface:terrainSurface});
  const kinetic=createKineticBody({surface:terrainSurface,gravity,contact,actuator:drive});
  
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
@@ -85,7 +85,7 @@ export function createEntropy(){
   kinetic.update(dt);
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
-  const foot=drive.getAnchor();footMesh.visible=!!foot;
+  const foot=drive.getFoot();footMesh.visible=!!foot;
   if(foot)footMesh.position.set(foot.x-o.x,foot.y,foot.z-o.z);
  }
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
@@ -147,6 +147,6 @@ export function createEntropy(){
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'borehole trial',borehole:boreholeTrial,status:'retained terrain fixture',currentTrial:'single planted foot: bounded stance stroke away from borehole'},gravity.inspect(),contact.inspect(),drive.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'borehole trial',borehole:boreholeTrial,status:'retained terrain fixture',currentTrial:'stance / unloaded swing / terrain replant'},gravity.inspect(),contact.inspect(),drive.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
