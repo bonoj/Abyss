@@ -12,7 +12,11 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   if(phase==='swing')return {x:0,y:0,z:0};
   if(!anchor){anchor={x:body.x,y:body.y-.18,z:body.z};plantCount++}
   extension=Math.hypot(body.x-anchor.x,body.z-anchor.z);
-  if(extension>=reach){phase='taut';return {x:0,y:0,z:0}}
+  if(extension>=strokeEnd){
+   swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
+   anchor=null;phase='swing';releaseCount++;
+   return {x:0,y:0,z:0};
+  }
   const n=contact.normal;
   const load=Math.max(0,-(acceleration.x*n.x+acceleration.y*n.y+acceleration.z*n.z));
   forceX=-Math.min(force,contact.friction*mass*load);
