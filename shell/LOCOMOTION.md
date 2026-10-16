@@ -606,3 +606,116 @@ Browser witness executing `630bf81d`, 60.53 FPS, t=8.1 s: 15/15 nominal grounded
 `b6fe7abe`: the alternating-feet system calculates each foot's actual rotated hip and checks anchor distance against the existing maxLength=1.04. An anchored foot beyond reach releases into swing instead of remaining a fake stance. Receiver readiness and grounded-handoff accounting require connected reach. Replant checks use the same hip geometry. No pitch limit, scripted recovery, coefficient tuning, extra solver or positional projection.
 
 **Source committed, browser witness pending.** In particular observe whether both feet can become swinging with no reachable landing target; this should be reported as unsupported motion, not disguised as walking. Also inspect whether a replant attempt at the fixed target can recover after a fall; no automatic target search was added. The old `geometry` inspector still measures COM-to-foot rather than hip-to-foot and must not be treated as the reach authority.
+
+
+### BE. Sisyphus earns equilibrium — retrospective and N-limb contact architecture (2026-10-16)
+
+**Status: design/specification only; not implemented.** This section supersedes the *locomotion policy* proposed in BB–BD, not the witnessed history or the valid single-body dynamics. The objective is one physically consistent architecture for 2, 3, 4, 6, or N limbs, with a statically viable resting state and gravity-mediated locomotion. Keep this specification inside LOCOMOTION.md as the sole source of truth.
+
+#### 1. Evidence and retrospective: why the previous approach failed
+
+The sequence of experiments was useful precisely because each correction exposed the next hidden assumption.
+
+1. **Body-directed drive masquerading as leg mechanics.** The original planted-foot actuator authored \`forceX=-4\` in world coordinates, nominally limited by friction inferred from gravity. This is a *prescribed horizontal acceleration*, not a force selected by a contact constraint or a foot-driven change in support. The torso was treated as the driver, and foot anchors as accessories. A single active strut's resultant was applied at one hip, and the inactive planted foot had no corresponding support wrench.
+2. **Two anchors did not mean two load paths.** The initial dual-foot gait counted planted anchors and grounded handoffs but loaded one strut. It could report support while the torso had no useful mechanical support. Anchor count, actual connectivity, transmitted force, normal reaction, and feasibility of equilibrium are different observables.
+3. **Two independent struts were necessary but insufficient.** Build \`630bf81d\` introduced x-separated foot anchors, separate body-local hips, and summed finite forces/torques. Browser witness: 60.53 FPS; 972 ticks, 566 with connected support, 406 without; 15 nominal handoffs; pitch 19.9736 rad, angular speed 10.6003 rad/s. At the final sample the active anchor x=-10.31646 was 1.89283 units from its hip despite max reach 1.04. It remained a powered stance while transmitting zero force. The body became a runaway tumbleweed. A powered-stance label is not a contact.
+4. **Reach-authoritative release made the failure honest.** Build \`08926e76\` released overextended anchors and refused out-of-reach replants. Browser witness: 75.26 FPS; 728 ticks, 618 with at least one connected leg and 110 without; 0 successful handoffs, 2 unsupported handoff episodes, 108 dual-swing steps, 12 unreachable landing attempts. One foot remained planted while the other pursued a stale target x=+0.638. Final body x=-1.795, pitch 1.57178 rad (~90°), omega ~-0.00405; it settled sideways rather than upright. The correction exposed that fixed swing targets and stroke thresholds are not a strategy for placing support beneath a falling COM.
+5. **The final equilibrium is accidental and mechanically misleading.** In that witness, the sole connected leg length ~0.820, direction approximately (0.99997, 0.00791), transmitted force (-0.412, +0.0284), torque +0.0425. Its vertical force is ~0.03 against gravitational load ~9.8 for mass 1. A sideways, terrain-colliding torso can come nearly to rest, but this is not a leg-supported upright equilibrium. Terrain endpoint collision can support the body; inspect it explicitly instead of attributing support to the foot.
+6. **Instrumentation also taught us where *not* to trust labels.** Legacy \`geometry.overextended\` measures COM-to-anchor rather than hip-to-anchor. \`doubleSupportSteps\` counts planted feet, not simultaneous load-bearing contacts. \`loadShares\` derived from force magnitudes, not terrain normal reactions. \`impacts=0\` can coexist with \`firstBodyImpact\` because endpoint collisions use a separate path. Counters for individual leg samples cannot be compared directly with whole-body tick counts without a denominator.
+
+**Conclusion:** patching reach, handoffs, and stiffness around a torso motor cannot produce general locomotion. Preserve the valid force summation and collision work; replace the gait's ownership model.
+
+#### 2. Fundamental architecture: body follows contacts, not vice versa
+
+One dynamic rigid body B with generalized state q=(x,y,theta) in the present planar experiment, generalized velocity v=(vx,vy,omega), mass m, inertia I. Gravity acts on COM. N limbs indexed i=0..N-1 each have a *body-local attachment* h_i, finite reach/workspace, an independently sampled terrain contact candidate, and a contact state. The limb may be modeled initially as a massless finite-force actuator/strut; massless is an explicit approximation, not an invitation to apply infinite forces or impulses.
+
+**Contact states:** SEEKING (unplanted, chooses feasible landing), SWINGING (moving toward a current candidate, replannable), TOUCHING (terrain collision candidate, no assumed load), SUPPORTING (normal reaction positive and friction constraints satisfied), UNLOADING (reaction decreases toward release), DETACHED (no force). A foot can be geometrically planted but not supporting. Swing targets must be refreshed or rejected as body pose/velocity changes; do not hold a target forever after it becomes unreachable.
+
+**Each fixed step:** sample terrain and foot kinematics → identify feasible contact candidates → compute/solve admissible contact and limb forces jointly → apply the *same* forces and their moments to the body's existing 120 Hz integrator → advance body → resolve finite body/terrain collisions → update foot contact states and next support candidates. No secondary body integrator, no rendered pose authority, no authored pitch resets.
+
+#### 3. Mechanics, including genuine static equilibrium
+
+For planar rotation R(theta), the world attachment is H_i=C+R(theta)h_i, with lever arm r_i=R(theta)h_i and velocity v_Hi=v_C+omega×r_i (use the existing signed-pitch convention consistently). For any transmitted limb force f_i, the body's generalized wrench is:
+
+    w_i = [ f_ix, f_iy, r_iy*f_ix - r_ix*f_iy ]
+
+The sign shown matches the current solver's torque convention and must be regression-checked with a known applied force. Gravity's wrench is w_g=[0,-m*g,0] about COM. The body obeys:
+
+    m*a_x = sum_i f_ix + f_collision,x
+    m*a_y = -m*g + sum_i f_iy + f_collision,y
+    I*alpha = sum_i tau_i + tau_collision
+
+**Equilibrium is an achievable physical state**, not an orientation clamp. At rest require sum_i f_ix≈0, sum_i f_iy≈m*g, sum_i tau_i≈0, with each contact's normal load lambda_n,i≥0, tangential load satisfying |lambda_t,i|≤mu_i*lambda_n,i, finite limb force limits, valid reach/workspace, and the actual contact geometry. A contact with zero normal force provides no traction. Do not divide m*g evenly by anchor count; load distribution is an outcome of the coupled force/contact solve. Two feet do not guarantee equilibrium, and neither does an arbitrary count of feet. A one-foot rest is possible only if the modeled foot/limb and terrain can supply the required wrench (e.g. finite ankle moment or another legitimate contact); a pure point-contact axial strut generally cannot balance arbitrary pitch.
+
+**The body has earned equilibrium:** supply a feasible initial upright posture and supporting foot geometry, and implement *finite* stance force regulation / contact constraint reactions capable of holding that posture. This is not a global pitch servo or gravity cancellation. In particular, the previous strut rest length 0.84 was interpreted from hip to ground while body COM started at ground+0.84 and hips sat 0.24 below COM: the actual initial leg length was only about 0.60, causing strong compression before motion began. Derive the initial COM height and contact positions from actual rotated hips and intended rest lengths. Verify net initial wrench is approximately zero, including moment, before any step is attempted.
+
+**Contact reaction versus limb actuation:** terrain applies the foot reaction; a massless limb transmits an equal/opposite wrench to the body within its actuator limits. A point foot does not magically produce an independent couple. If a limb is axial-only, its transmitted force must align with its strut; if it can steer forces or exert a hip/ankle moment, model that degree of freedom and its limits explicitly. A generalized multi-axis contact solver must not silently grant every limb an arbitrary 2D force. Terrain-body collisions are separate real contacts, included in the total wrench but not counted as foot support.
+
+**Compliance versus constraint:** a compliant spring/damper can approximate load-bearing stance, but a zero-force equilibrium requires correct geometry and preload. A velocity-level unilateral contact solver with finite actuator constraints may be more reliable for true rest. Select one mechanically coherent formulation and test it; do not layer contradictory spring, projection, tether, and force corrections on the same degree of freedom.
+
+#### 4. Gravity-mediated gait: controlled changes in support
+
+Standing is a first-class mode. A stable support configuration remains standing without an elapsed gait timer or continuous horizontal motor. To move, the foot planner intentionally changes the available support wrench, allowing gravity to accelerate the COM relative to the current contact(s). The next foot is placed in a feasible region that can intercept and arrest the body's predicted motion; contact then transfers load and the trailing foot unloads.
+
+The planner can use COM position/velocity, angular state, local terrain geometry, foot reach, candidate friction, and current support margin. It should not command the body's global x velocity. A small, explicit, bounded push-off or joint work budget may compensate dissipative impacts when walking is requested. Gravity supplies falling acceleration, not free perpetual motion; steady locomotion on level terrain with losses requires work from the limbs. Standing does not require perpetual motor work in an ideal static constraint, though a compliant active model may require force to maintain preload.
+
+**Swing targeting:** compute a reachable terrain target relative to the current hip and anticipated COM at landing, not a frozen \`body.x-lead\` from the moment of release. Reject holes, bad normals, insufficient friction, and unreachable positions. If no target is viable, record unsupported/falling; never teleport a foot or force a handoff. For N limbs, use a support-set policy, not a hardcoded pairwise alternator.
+
+#### 5. N-limb generalization
+
+The body solver accepts an arbitrary array of limb definitions \`[{id, attachmentLocal, workspace, forceLimits, contactModel, footState, plannerState}]\`. At each step:
+
+    contacts = limbs.map(limb => sampleCandidateAndKinematics(limb, body, terrain))
+    feasible = contacts.filter(c => c.touching && c.withinWorkspace)
+    reactions = solveContactWrench(feasible, body, gravity, limits, friction)
+    bodyWrench = sum(reactions.map(contact => contact.bodyWrench))
+    integrateBodyOnce(bodyWrench + gravity + bodyCollisions, dt)
+    updateLimbStatesAndReplan(body, contacts, reactions)
+
+This is an architectural pseudocode contract, **not** a claim that the current engine already has an N-contact solver. Planar 2D first; eventual 3D requires full 6D wrench, 3D friction cones, and rotational inertia tensor. Foot geometry and contact manifold may be point, pad, or multiple points; no universal assumption that each limb contributes only one scalar axial force. With N>2, support selection is a constrained feasibility/optimization problem: minimize unnecessary effort, force discontinuities, and slip while satisfying gravity, motion intent, reach, and unilateral contact limits. Deterministic tie-breaking, stable IDs, bounded iterations, and inspector provenance are required. A tripod is a *three-contact instantiation*, not a separate gait engine.
+
+#### 6. Illustrative diagrams
+
+    STANDING:                  CONTROLLED FALL:               RECOVERY:
+           COM                       COM ->                     COM
+            |                         /                           |
+         [body]                     [body]                      [body]
+          /  \\                       /   \\                       /  \\
+       hip    hip                  hip   hip                   hip    hip
+        |      |                    |     \\                    /       |
+       foot  foot                 foot    swing              release  foot
+       ===    ===                 ===       .                         ===
+       two feasible              support shifts             next feasible
+       contact reactions         under gravity              contact catches
+
+    N limbs -> contact candidates -> feasible support set -> constrained forces
+                                                    |
+                                             sum body wrench
+                                                    |
+                                             120 Hz rigid body
+                                                    |
+                                      new pose + contact observations
+                                                    |
+                                          replannable foot targets
+
+The diagrams depict causal roles, not a prescribed limb trajectory.
+
+#### 7. Implementation plan: inspectable, reversible, small turns
+
+**Turn A — static equilibrium fixture, before gait.** Preserve a known commit; separate foot contact mechanics from gait decisions. Define N-limb data model with N=2 fixture, correct initial COM/hip/foot geometry, disable the world -x motor and stroke-driven handoff, and solve/validate admissible standing reactions at both feet. A stationary body must remain upright under gravity with bounded forces and near-zero net wrench. If not feasible, expose the actual force/moment deficit rather than holding it up artificially. Verify on level ground and modest terrain variation. Keep the sole 120 Hz solver.
+
+**Turn B — contact solver and truthfulness.** Distinguish touch, normal reaction, friction, reach, transmission, and body collision. Instrument per-foot reaction, tangential friction, support membership, slip, moment, and solver residual. Enforce no force on detached limbs, no tensile reaction from a unilateral terrain contact, no infinite foot torque, and no duplicated forces. Validate with N=1,2,3,6 configurations and deliberate impossible-support cases. N=1 may fall; failure is evidence.
+
+**Turn C — gravity-mediated stepping.** Add contact-seeking swing targets based on predicted reachable catch points; permit dynamic load transfer and natural falling motion. Walking intent changes foot/contact strategy, not COM velocity. Preserve physical failure cases and terrain holes. No scripted recovery, orientation snap, or stale swing target.
+
+**Turn D — tripod and N-leg evidence.** Instantiate N=3 tripod and N=6 creature using exactly the same solver, with differing limb attachments/workspaces and contact policy. Compare equilibrium margins, load distribution, slip, and recovery from a small finite perturbation. Do not claim N-leg success merely because the array accepts N limbs.
+
+#### 8. Acceptance, instrumentation, and exclusions
+
+Inspector must report: executing SHA, FPS, fixed-step count; body COM/velocity/pitch/omega, mass/inertia, gravity, net wrench and residual; per-limb ID, hip, foot target, anchor, reach, contact state, normal/tangential reactions, actuator force/moment, slip, contact age, reason for release or rejected landing; actual support-set size and feasibility, margin to friction/force limits, contact-solver convergence; separate torso terrain impacts. Capture first failure event and a compact rolling history rather than flooding every frame.
+
+**Accept standing** only when a browser-witnessed body remains upright at rest under gravity with feasible contact forces, near-zero acceleration/rotation, no position/pitch correction masquerading as support, and FPS≥55. **Accept walking** only when repeated steps transfer *real* support and the COM follows gravity-driven dynamics with finite actuator work. **Accept N-limb generality** only when one implementation runs 2,3,6 limbs without bespoke force code.
+
+**Explicit exclusions:** hardcoded \`forceX=-4\` world propulsion; fixed stroke-clock gait as locomotion authority; body-following feet; teleporting foot anchors; pitch clamps; magic normal forces; body COM suspension; invisible righting impulses; a second integrator; gratuitous GPU/FPS optimization while ≥55. Existing code remains intact until Turn A is intentionally implemented and witnessed.
+
+**Next action:** implement Turn A only, then obtain executing browser SHA and a rest/equilibrium observation before authorizing gait.
