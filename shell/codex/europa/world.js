@@ -15,6 +15,7 @@ export function createEuropa(){
  const ledger=createMaterialLedger(terrain.inventoryNodes());
  const stratigraphy=createStratigraphy();
  world.europaSection=options=>stratigraphy.crossSection(options);
+ world.europaMap=options=>stratigraphy.surfaceMap(options);
  world.europaProfile=(x=0,z=0)=>Array.from({length:25},(_,i)=>stratigraphy.sample(x,1.5-i*.125,z));
  const extractions=[];
  world.extractTestCore=(options={x:0,z:0,radius:.8,yTop:3.6,yBottom:-3.6},recoveryFraction=1)=>{
