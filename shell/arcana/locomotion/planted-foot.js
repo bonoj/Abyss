@@ -51,5 +51,5 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   extension=reach;phase='taut';
  }
  function inspect(){return {name:'planted foot',mode:'stance / unloaded swing / terrain replant',phase,anchor,swingTarget,swingProgress,strokeEnd,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,swingCount,releaseCount,failedPlants,poweredSteps,unsupportedSteps,forceX}}
- return {sample,constrain,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||swingTarget};
+ return {sample,constrain,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||(swingFrom&&swingTarget?{x:swingFrom.x+(swingTarget.x-swingFrom.x)*swingProgress,y:swingFrom.y+Math.sin(Math.PI*swingProgress)*.25,z:swingFrom.z+(swingTarget.z-swingFrom.z)*swingProgress}:null)};
 }
