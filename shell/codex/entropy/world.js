@@ -4,6 +4,7 @@ import {createTerrain} from '../../arcana/terrain.js?v=flatlandia-1736f0e8';
 import {createTerrainSurfaceQuery} from '../../arcana/terrain-surface-query.js';
 import {createNodeMaker} from '../../arcana/node-maker.js?v=1';
 import {createWanderer} from '../../arcana/wanderer.js';
+import {createArticulatedTrial} from '../../arcana/locomotion/articulated-trial.js';
 import {createMistsReeds} from '../../arcana/populations/mists-reeds.js';
 import {createBBGarden} from '../../arcana/populations/bb-garden.js';
 import {createSecondGarden} from '../../arcana/populations/second-garden.js';
@@ -62,6 +63,7 @@ export function createEntropy(){
  // Entropy begins without flora or fauna. Their Arcana implementations remain untouched.
  const terrainSurface=createTerrainSurfaceQuery(terrain);
  const botanicalOffset=()=>{const [x,z]=wanderer.inspect().offset;return {x,z}};
+ const articulated=createArticulatedTrial(T,{parent:world.content,surface:terrainSurface,actor:()=>wanderer.inspect(),offset:botanicalOffset});
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
  const debris=createBeadDebris(T,{terrain,offset:botanicalOffset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,abioentropy:cradleCollision,wanderer:{inspect:()=>wanderer.inspect(),innerRadius:10.07*.06}});
  // Eye is independent of the established populations and terrain.
@@ -117,10 +119,10 @@ export function createEntropy(){
   return navigation.tap(x,y);
  };
 
- world.update=dt=>{updateCradle(dt);wanderer.update(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
+ world.update=dt=>{updateCradle(dt);wanderer.update(dt);articulated.update(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
