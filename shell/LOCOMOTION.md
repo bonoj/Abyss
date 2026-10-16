@@ -586,3 +586,12 @@ Build `990d251f`, t=6.7417, 71.68 FPS: 14/14 grounded handoffs, zero unsupported
 3. **Observe before controlling.** Watch a standing start, double support, single support, first fall/body collision, and eventual rest. Record visual agreement, pitch/omega, foot forces, penetration, and FPS. Only correct witnessed mechanical inconsistencies. **No posture feedback yet**, no knees, no full skeleton, no new performance work above 55 FPS.
 
 **Acceptance:** an intelligible fall is a valid result. Stable standing should emerge only if forces and geometry actually balance. The proposal is deliberately small and falsifiable.
+
+
+### BC. Two real feet — first implementation (2026-10-16)
+
+**Implementation commits:** `6c983d3a` gives the two feet independent terrain-sampled x anchors at body x ±0.18 (and distinct x-offset swing targets). `d379c030` gives each foot its own body-local hip at x ±0.12, y −0.24; both planted/connected legs now independently compute hip location, hip velocity, strut compression/tension, force and torque. The forces and moments sum into the **existing** single 120 Hz rigid-body solver; the active foot alone receives the existing stance motor. No independent skeleton, mass, knee, pitch clamp, or new physics clock. The existing spring coefficients and body inertia are unchanged.
+
+A leg beyond maxLength=1.04 is now explicitly disconnected and transmits **zero** spring, tension and motor force. The inspector exposes `legs[]` (per-leg anchor, hip, length, length rate, connectivity, transmitted force and torque), `wrench` (net force/torque), and `connectedSupportSteps` vs `noConnectedSupportSteps`. `loadShares` now derives from actual force magnitudes rather than planted-anchor count; these are relative transmitted-force magnitudes, **not** measured terrain normal reactions. Legacy single-strut fields still exist for compatibility and should be interpreted as the active leg's most recent observation; aggregated counters now count leg-samples, not necessarily body ticks.
+
+**Status: source committed, browser execution NOT YET VERIFIED.** Request exact executing SHA, FPS, body pitch/omega, per-leg forces and reach, simultaneous loaded legs, foot plants/handoffs, contact penetration and visual impression. Watch especially for a standing start, release/replant under two-foot support, and the absence of tension while disconnected. If a witnessed problem arises, fix topology or sign consistency before coefficient tuning. No performance work unless FPS falls below 55.
