@@ -1,25 +1,20 @@
 # Shell — Abyss handoff
 
-## Entry
-- Source: `bonoj/Abyss/shell/`
+## Entry and architecture
+- Source: https://github.com/bonoj/Abyss/tree/main/shell
 - Canonical: https://bonoj.github.io/Abyss/shell/
-- Workflow: https://github.com/bonoj/Abyss/actions/workflows/pages.yml
+- Pipeline: https://github.com/bonoj/Abyss/actions/workflows/pages.yml
 - Commits: https://github.com/bonoj/Abyss/commits/main/
-- Original source: `bonoj/Hermeticon/sieve/` plus its Athanor, Codex, and Arcana dependencies. **Do not edit the original to change Shell.**
+- Shell `index.html` loads `./main.js`, which loads Athanor and mounts `./codex/genesis/world.js`.
+- `athanor/`: host, render, scheduling, inspection; `arcana/`: reusable capabilities; `codex/<world>/world.js`: authored world; `main.js`: bootstrap and world selection.
+- Former `codex/sieve/world.js` was byte-identical to `codex/genesis/world.js`; Genesis is canonical. Former `sieve/compose.js` was a redundant bootstrap and has been replaced by `main.js`.
+- Unused outreach data `sieve/connects.js` and `sieve/connect-deck.json` are preserved in `archive/sieve/`, outside the runtime graph. They are not world definitions. Outreach workspace links in HTML still point to the Hermeticon project.
 
-## Contract
-Shell is an isolated snapshot of the Sieve world, not a live link to Hermeticon. All first-party runtime modules live under `shell/`. Third-party Three.js is pinned at 0.180.0 via CDN. Shell's root `index.html` loads `./sieve/compose.js`, which mounts `../codex/sieve/world.js` through `../athanor/athanor.js`.
+## Isolation
+Shell is a self-contained first-party runtime snapshot, with Three.js 0.180.0 from a pinned CDN. No runtime imports from Hermeticon. The original Hermeticon source is untouched. Worlds inside Shell share Athanor and Arcana; use another Abyss top-level folder only for separate runtimes.
 
-The top title is SHELL. The 🐙 menu links here, to Abyss commits, and to the Abyss Pages workflow. The outreach workspace links deliberately remain in Hermeticon as reference material, not runtime dependencies.
-
-## Build identity
-The shared Abyss publisher writes `/Abyss/build.json` containing the exact deployment commit SHA. Shell's `athanor/athanor.js` reads `../../build.json` relative to its module URL, displays the first 8 hex characters in `#build`, and reports the full SHA to the inspector. The displayed SHA must equal the successful Pages run's head SHA; if not, do not declare the page live. A successful workflow is not sufficient to prove runtime execution.
-
-## Deploy / verify
-Changes under `shell/**` trigger the `Publish Abyss` workflow. Changes to the workflow itself also trigger it. Preserve all other experiment directories. After publish, verify `/Abyss/pages.json` contains `shell`, the `/Abyss/shell/` HTML responds, and the *executing* build number matches the workflow commit. Check browser runtime errors and imports. If the build does not wake, inspect workflow logs and missing local imports before changing the publisher.
-
-## Known boundaries
-Abyss publishes files unchanged; the producer is responsible for application-level cache busting and module-graph completeness. The clone was copied from Hermeticon with local module paths preserved. Do not introduce service workers or shared-origin storage that could interfere with other Abyss experiments. Do not silently recreate `sieve/` at repository root.
+## Build and deployment
+Changes to `shell/**` trigger the Pages workflow, which copies the repo without rewriting application files. The publisher writes `/Abyss/build.json` with the deployment commit SHA. `shell/athanor/athanor.js` fetches it using `../../build.json` and displays its first 8 characters. Match this number against the successful workflow commit before calling the running build verified. The workflow checks packaging, JS syntax, public manifest, and HTML reachability, not browser runtime execution.
 
 ## Recovery
-Restore a known-good `shell/` snapshot from Abyss history and publish; never overwrite Hermeticon or other Abyss experiments.
+If Shell fails to wake, check the console and the module graph, then workflow logs. Restore a known-good Shell tree from Abyss history if needed. Do not change Hermeticon or other Abyss experiments to fix Shell. Avoid service workers and shared-origin storage collisions.
