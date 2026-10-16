@@ -4,6 +4,8 @@ import {createPlantedFoot} from './planted-foot.js';
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
+ let geometrySteps=0,overextendedSteps=0,maxHorizontal=0,maxVerticalCorrection=0,largeCorrectionCount=0,lastGeometry=null;
+ const geometryEvents=[];
  function sample(body,context){
   const current=feet[active];
   const receiver=feet[1-active];
@@ -48,8 +50,14 @@ export function createAlternatingFeet({surface}={}){
    const dx=stance?body.x-stance.x:0,dz=stance?body.z-stance.z:0;
    const horizontal=Math.hypot(dx,dz);
    const legLength=.84;
+   geometrySteps++;
+   maxHorizontal=Math.max(maxHorizontal,horizontal);
+   if(horizontal>legLength)overextendedSteps++;
    const centerFloor=(stance?.y??floor)+Math.sqrt(Math.max(0,legLength*legLength-horizontal*horizontal));
-   if(body.y<centerFloor){verticalCorrectionTotal+=centerFloor-body.y;body.y=centerFloor;}
+   const correction=Math.max(0,centerFloor-body.y);
+   if(correction){verticalCorrectionTotal+=correction;maxVerticalCorrection=Math.max(maxVerticalCorrection,correction);if(correction>.05)largeCorrectionCount++;body.y=centerFloor;}
+   lastGeometry={time:body.time,active,anchor:stance?{...stance}:null,horizontal,legLength,overextended:horizontal>legLength,centerFloor,bodyY:body.y,vy:body.vy,correction};
+   if(horizontal>legLength||correction>.05){geometryEvents.push({...lastGeometry});if(geometryEvents.length>16)geometryEvents.shift();}
    if(body.y<=centerFloor+1e-7&&body.vy<0){lastVerticalImpulse=-body.vy;body.vy=0;verticalImpulseTotal+=lastVerticalImpulse;}
    // The planted leg's inextensible length couples vertical clearance to horizontal reach.
    // It can support compression but never pull the body down.
@@ -60,6 +68,6 @@ export function createAlternatingFeet({surface}={}){
    if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||hasFootSupport()});
   });
  }
- function inspect(){return {name:'alternating feet',mode:'contact-derived load share witness; horizontal drive remains single stance',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'contact-derived load share witness; horizontal drive remains single stance',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,hasFootSupport,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
