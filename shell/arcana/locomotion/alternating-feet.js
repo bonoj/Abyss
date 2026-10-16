@@ -7,6 +7,7 @@ export function createAlternatingFeet({surface}={}){
  function sample(body,context){
   const current=feet[active];
   const receiver=feet[1-active];
+  if(!receiver.getAnchor()&&receiver.inspect().plantCount===0&&context.contact?.supported)receiver.sample(body,{...context,holdStance:true});
   const receiverReady=!!receiver.getAnchor();
   const force=current.sample(body,{...context,holdStance:!receiverReady});
   if(!receiverReady&&current.getAnchor())heldSteps++;
