@@ -3,10 +3,14 @@ import {createPlantedFoot} from './planted-foot.js';
 // A handoff happens on release, not on an elapsed gait clock.
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
- let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0;
+ let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0;
  function sample(body,context){
   const current=feet[active];
-  const force=current.sample(body,context);
+  const receiver=feet[1-active];
+  const receiverReady=!!receiver.getAnchor();
+  const force=current.sample(body,{...context,holdStance:!receiverReady});
+  if(!receiverReady&&current.getAnchor())heldSteps++;
+  if(receiverReady&&current.getAnchor()&&current.inspect().extension>=current.inspect().strokeEnd)current.release(body);
   if(current.inspect().phase==='swing'){
    const next=1-active;
    if(feet[next].inspect().phase==='swing'){
@@ -28,6 +32,6 @@ export function createAlternatingFeet({surface}={}){
    if(i===active||foot.inspect().phase==='swing')foot.constrain(body,context);
   });
  }
- function inspect(){return {name:'alternating feet',mode:'one loaded stance; two independent swing states',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'one loaded stance; two independent swing states',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
