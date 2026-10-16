@@ -40,7 +40,7 @@ jobs:
           folders=[p.parent.relative_to(site).as_posix() for p in pages]
           assert len(folders)==len(set(folders))
           (site/'build.json').write_text(json.dumps({'sha':sha},separators=(',',':'))+'\n')
-          (site/'pages.json').write_text(json.dumps({'sha':sha,'pages':folders},separators=(',',':'))+'\\n')
+          (site/'pages.json').write_text(json.dumps({'sha':sha,'pages':folders},separators=(',',':'))+'\n')
           print('UNMODIFIED EXPERIMENTS',folders,'SOURCE SHA',sha)
           PY
       - name: Check packaged JavaScript syntax
