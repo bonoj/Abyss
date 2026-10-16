@@ -29,11 +29,13 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   // Finite body: sample the two ends of a short pitch-oriented capsule.
   // Contact impulses affect both translation and angular momentum.
   const half=.30,cs=Math.cos(s.pitch),sn=Math.sin(s.pitch);
+  let endpointSupported=false;
   for(const sign of [-1,1]){
    const rx=sign*half*sn,ry=sign*half*cs;
    const probe={x:s.x+rx,y:s.y+ry,z:s.z,vx:s.vx+s.omega*ry,vy:s.vy-s.omega*rx,vz:s.vz};
    const bodyHit=contact.resolve(probe,{radius:radius*.7,dt:step,acceleration,activeDrive:false,footSupport:false});
    if(bodyHit.hit&&bodyHit.penetration>0){
+    endpointSupported=endpointSupported||!!bodyHit.supported;
     if(!firstBodyImpact)firstBodyImpact={time:+s.time.toFixed(4),end:sign,penetration:bodyHit.penetration,pitch:s.pitch};
     s.x+=probe.x-(s.x+rx);s.y+=probe.y-(s.y+ry);
     const jx=probe.vx-(s.vx+s.omega*ry),jy=probe.vy-(s.vy-s.omega*rx);
@@ -44,8 +46,8 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   }
   if(result.penetration)s.maxCorrection=Math.max(s.maxCorrection,result.penetration);
   if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:result.supported});
-  s.contact=result.supported||footSupport;
-  activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:(actuator?.hasFootSupport?.()?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'planted-foot'}:null);
+  s.contact=result.supported||endpointSupported||footSupport;
+  activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:(endpointSupported?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'body-endpoint'}:(actuator?.hasFootSupport?.()?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'planted-foot'}:null));
   if(result.contactObservation){lastContact=result.contactObservation;if(Math.abs(lastContact.normal.y)<0.5)wallContacts++;}
   if(result.hit&&result.penetration!==undefined&&!wasSupported){
    s.impacts++;events.push({t:+((s.steps+1)*step).toFixed(4),type:'contact',x:+s.x.toFixed(4),restitution:result.hit.restitution,observation:result.contactObservation});
