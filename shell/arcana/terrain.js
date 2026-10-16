@@ -138,6 +138,44 @@ export function createTerrain({topology='reference'}={}){
   }
   return Math.sqrt(best)-radius;
  }
+ // Closest point on rendered terrain triangles; normal points from solid into void.
+ // Coordinates are terrain-space, independent of the Wanderer visual offset.
+ function sphereContact(center,radius){
+  collisionPoint.set(center.x,center.y,center.z);
+  const inside=fieldSample(center.x,center.y,center.z)>0;
+  let best=Infinity,bx=0,by=0,bz=0;
+  collisionStats.queries++;
+  for(const chunk of terrainChunks){
+   const g=chunk.geometry,bb=g.boundingBox;if(!bb)continue;
+   const dx=Math.max(bb.min.x-center.x,0,center.x-bb.max.x),dy=Math.max(bb.min.y-center.y,0,center.y-bb.max.y),dz=Math.max(bb.min.z-center.z,0,center.z-bb.max.z);
+   if(dx*dx+dy*dy+dz*dz>=best){collisionStats.chunkRejects++;continue}
+   const data=chunk.collision;if(!data)continue;
+   const {positions,boxes}=data;
+   for(let i=0;i<positions.length;i+=9){
+    const j=i*2,tx=Math.max(boxes[j]-center.x,0,center.x-boxes[j+3]),ty=Math.max(boxes[j+1]-center.y,0,center.y-boxes[j+4]),tz=Math.max(boxes[j+2]-center.z,0,center.z-boxes[j+5]);
+    if(tx*tx+ty*ty+tz*tz>=best)continue;
+    collisionA.fromArray(positions,i);collisionB.fromArray(positions,i+3);collisionC.fromArray(positions,i+6);
+    collisionStats.triangleTests++;
+    collisionTriangle.set(collisionA,collisionB,collisionC).closestPointToPoint(collisionPoint,collisionClosest);
+    const d=collisionClosest.distanceToSquared(collisionPoint);
+    if(d<best){best=d;bx=collisionClosest.x;by=collisionClosest.y;bz=collisionClosest.z}
+   }
+  }
+  if(!Number.isFinite(best))return null;
+  const distance=Math.sqrt(best);
+  if(!inside&&distance>=radius)return null;
+  let nx=center.x-bx,ny=center.y-by,nz=center.z-bz;
+  if(inside){nx=-nx;ny=-ny;nz=-nz}
+  const n=Math.hypot(nx,ny,nz);
+  if(n<1e-8){
+   const e=.035;
+   nx=-(fieldSample(center.x+e,center.y,center.z)-fieldSample(center.x-e,center.y,center.z));
+   ny=-(fieldSample(center.x,center.y+e,center.z)-fieldSample(center.x,center.y-e,center.z));
+   nz=-(fieldSample(center.x,center.y,center.z+e)-fieldSample(center.x,center.y,center.z-e));
+  }
+  const len=Math.hypot(nx,ny,nz)||1;
+  return {point:{x:bx,y:by,z:bz},normal:{x:nx/len,y:ny/len,z:nz/len},penetration:inside?radius+distance:radius-distance,inside,materialId:materialAt(bx,by,bz)?.id??null};
+ }
  // Authoritative intersection against the very triangles extracted for rendering.
  // Mesh coordinates are terrain-space; compensate the Wanderer scroll here.
  function intersectsSphere(center,radius,frameOffset=null){
@@ -238,5 +276,5 @@ export function createTerrain({topology='reference'}={}){
   return {magnitude:e,radius,depth,rim,changed,dirtyChunks:terrainPerf.lastDirtyChunks};
  }
  regenerate();
- return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
+ return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,sphereContact,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
 }
