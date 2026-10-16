@@ -285,7 +285,7 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
    if(field[id(x,y,z)]>0){const key=String(materialAt(xp(x),yp(y),zp(z)).id);counts[key]=(counts[key]||0)+1}
   return counts;
  }
- function extractNodes({x,z,radius=0.8,yTop=3.6,yBottom=-3.6}={}){
+ function extractNodes({x,z,radius=0.8,yTop=3.6,yBottom=-3.6}={},onRemoved=null){
   if(![x,z,radius,yTop,yBottom].every(Number.isFinite)||radius<=0||yBottom>=yTop)throw Error('invalid extraction geometry');
   const removed={},stepX=2*WORLD_HALF/(NX-1),stepZ=2*WORLD_HALF/(NZ-1);
   const x0=Math.max(1,Math.floor((x-radius+WORLD_HALF)/stepX)),x1=Math.min(NX-2,Math.ceil((x+radius+WORLD_HALF)/stepX));
@@ -296,7 +296,8 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
    for(let iy=1;iy<NY-1;iy++){
     const Y=yp(iy),index=id(ix,iy,iz);
     if(Y<yBottom||Y>yTop||field[index]<=0)continue;
-    const key=String(materialAt(xp(ix),Y,zp(iz)).id);
+    const X=xp(ix),Z=zp(iz),key=String(materialAt(X,Y,Z).id);
+    if(onRemoved)onRemoved({x:X,y:Y,z:Z,materialId:key});
     removed[key]=(removed[key]||0)+1;
     field[index]=-Math.max(0.01,Math.abs(field[index]));count++;
    }
