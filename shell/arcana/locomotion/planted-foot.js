@@ -25,6 +25,17 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   return {x:forceX/mass,y:0,z:0};
  }
  function constrain(body,{dt}){
+  if(phase==='swing'){
+   swingProgress=Math.min(1,swingProgress+swingRate*dt);
+   if(swingProgress>=1&&swingTarget){
+    const y=surface?.(swingTarget.x,swingTarget.z);
+    if(Number.isFinite(y)){
+     anchor={x:swingTarget.x,y,z:swingTarget.z};
+     phase='stance';plantCount++;swingCount++;swingTarget=null;
+    }else{failedPlants++;swingProgress=0;}
+   }
+   return;
+  }
   if(!anchor)return;
   // Horizontal tether: vertical support is exclusively terrain's responsibility.
   const dx=body.x-anchor.x,dz=body.z-anchor.z,d=Math.hypot(dx,dz);
