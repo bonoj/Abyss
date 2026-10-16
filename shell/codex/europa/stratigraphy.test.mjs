@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createStratigraphy} from './stratigraphy.js';
+const s=createStratigraphy();
+const top=s.sample(0,1.15,0),deep=s.sample(0,-1,0);
+assert.equal(top.unit,'radiolytic-skin');
+assert.equal(deep.unit,'inherited-ice');
+for(const p of [top,deep])assert.ok(Math.abs(p.composition.waterIce+p.composition.soluteProxy-1)<1e-10);
+assert.ok(top.provenance.alterationIndex>deep.provenance.alterationIndex);
+const section=s.crossSection({columns:5,rows:4});
+assert.equal(section.cells.length,4);
+assert.equal(section.cells[0].length,5);
+assert.deepEqual(section,s.crossSection({columns:5,rows:4}));
+assert.throws(()=>s.crossSection({columns:1}));
+console.log('PASS synthetic stratigraphy');
