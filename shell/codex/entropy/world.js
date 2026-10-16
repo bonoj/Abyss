@@ -6,6 +6,7 @@ import {createNodeMaker} from '../../arcana/node-maker.js?v=1';
 import {createWanderer} from '../../arcana/wanderer.js';
 import {createArticulatedTrial} from '../../arcana/locomotion/articulated-trial.js';
 import {createKineticBody} from '../../arcana/physics/kinetic-body.js';
+import {createContactDrive} from '../../arcana/physics/contact-drive.js';
 import {createTerrainContact} from '../../arcana/physics/terrain-contact.js';
 import {createGravitySystem,uniformGravity} from '../../arcana/physics/gravity.js';
 import {createMistsReeds} from '../../arcana/populations/mists-reeds.js';
@@ -72,14 +73,14 @@ export function createEntropy(){
  const gravity=createGravitySystem({components:[uniformGravity({id:'surface',y:-9.8})]});
  world.gravity=gravity;
  const contact=createTerrainContact({terrain,profile:'dissipative'});
- const kinetic=createKineticBody({surface:terrainSurface,gravity,contact});
- let initialImpulseApplied=false;
+ const drive=createContactDrive();
+ const kinetic=createKineticBody({surface:terrainSurface,gravity,contact,actuator:drive});
+ 
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
  trialMesh.name='Kinetic body';world.content.add(trialMesh);
  world.impulseKineticBody=(x=2.2,y=0,z=0)=>kinetic.impulse(x,y,z);
  function updateKinetic(dt){
   kinetic.update(dt);
-  if(!initialImpulseApplied&&kinetic.state.contact){kinetic.impulse(6,0,0);initialImpulseApplied=true}
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
  }
@@ -142,6 +143,6 @@ export function createEntropy(){
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'borehole trial',borehole:boreholeTrial,launch:'single horizontal +6 impulse after first support',goal:'rim / wall / underworld; not yet verified'},gravity.inspect(),contact.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'borehole trial',borehole:boreholeTrial,launch:'single horizontal +6 impulse after first support',goal:'rim / wall / underworld; not yet verified'},gravity.inspect(),contact.inspect(),drive.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
