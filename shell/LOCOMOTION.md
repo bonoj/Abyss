@@ -785,3 +785,10 @@ Source audit established `kinetic-body.js` uses **clockwise-positive pitch**: bo
 Commit `f9203844` corrects hip transform to `(hx*cos+hy*sin,-hx*sin+hy*cos)`, satisfying `d(rx)/dt=omega*ry` and `d(ry)/dt=-omega*rx`. This is a geometry/kinematics consistency fix only: no stiffness/damping tuning, body stationkeeping, foot movement, or pose servo. The previous perturbation result remains valid evidence **for the old implementation**, not evidence of corrected stability.
 
 **Next browser witness:** verify executing SHA, compare undisturbed standing and the existing +0.08 impulse at t=2. Determine whether sway remains bounded and whether support survives. A new fall would indicate remaining physical instability and should not be concealed. **Remaining audit:** confirm body-terrain impact path and add time-resolved instability diagnostics before introducing joint actuation.
+
+
+### BL. Browser witness — corrected pitch geometry still fails (2026-10-16)
+
+Executing build `81ba598a5bf51cafba70bf7079c7c4154083770d`, FPS 83.6320. Deterministic +0.08 horizontal velocity impulse confirmed at t=2.0000 s. Support lost at t=3.0667 s (x=1.7784), **1.0667 s after impulse**, versus 1.3917 s in the old geometry. At t=4.9167 s (590 steps), COM (4.33204,-17.26295,0), velocity (1.38037,-19.44003,0), pitch -2.55241 rad, omega -1.21823 rad/s. Both legs out of reach (18.432 and 18.223 vs max 1.04); force zero; gravity residual (0,-9.8,0). Supported steps 366; unsupported 224. No body impacts or terrain corrections recorded.
+
+**Conclusion:** the clockwise-positive hip-transform correction fixed a real kinematic inconsistency but did not produce dynamic stability. A pair of massless compression-only axial struts at these attachment points does not demonstrate a robust restoring wrench. Preserve the failure; do not tune blindly or introduce body stationkeeping. Next turn: inspect physically attributable joint/contact rotational compliance and separately audit missing body-terrain collisions. Retain the same perturbation for apples-to-apples comparison.
