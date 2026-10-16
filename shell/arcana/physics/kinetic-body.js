@@ -14,7 +14,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   const s=state;
   const acceleration=gravity.sample(s,s.time);
   let activeDrive=false;
-  if(actuator){const drive=actuator.sample(s,{dt:step,acceleration,contact:activeContact});acceleration.x+=drive.x;acceleration.y+=drive.y;acceleration.z+=drive.z;activeDrive=!!(drive.x||drive.y||drive.z);}
+  if(actuator){const drive=actuator.sample(s,{dt:step,acceleration,contact:activeContact});acceleration.x+=drive.x;acceleration.y+=drive.y;acceleration.z+=drive.z;acceleration.torque=drive.torque||0;activeDrive=!!(drive.x||drive.y||drive.z);}
   // Planar rigid-body pitch: actuator torque is integrated by the same fixed-step clock.
   s.torque=Number.isFinite(acceleration.torque)?acceleration.torque:0;
   s.omega+=s.torque/s.inertia*step;
