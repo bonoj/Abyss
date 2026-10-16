@@ -61,7 +61,7 @@ jobs:
           assert not re.search(r'(?:from\\s*|import\\s*\\()\\s*[\\x22\\x27]\\.{1,2}/',bundle),'Unbundled local import'
           # Legacy cached Shell HTML imports main.js?build=SHA; preserve that
           # contract, but make the entry an immutable bundle loader.
-          pathlib.Path('site/shell/main.js').write_text('import \\'./assets/main.'+sha+'.js\\';\\n')
+          pathlib.Path('site/shell/main.js').write_text("import './assets/main."+sha+".js';\\n")
           # Assert the desired experiment is actually in the compiled artifact.
           assert 'flatlandia' in bundle,'Flatlandia absent from executable bundle'
           print('BUNDLED',asset,len(bundle),'bytes; no local module fetches')
