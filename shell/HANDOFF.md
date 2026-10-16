@@ -46,3 +46,7 @@ If Shell fails to wake, check the console and the module graph, then workflow lo
 ## Europa opt-in experiment (2026-10-16)
 
 `main.js` preserves Entropy as default. Add `?world=europa` to the canonical Shell URL to mount `codex/europa/world.js` instead. This early world composes the existing vessel and atlas terrain, with uncalibrated inspector metadata; it has no drilling, sampling, or material ledger. Do not interpret terrain IDs as Europan chemistry. Source commits: Europa module `967f00c0`, selector `1b2f58f`. The new world has **not been browser-runtime verified**. Preserve Entropy's independent locomotion frontier.
+
+## Europa excavation experiment
+
+The opt-in Europa scene now inventories positive signed-field lattice nodes using `terrain.inventoryNodes()`, then removes actual occupied nodes via `terrain.extractNodes({x,z,radius,yTop,yBottom})`, rebuilding local terrain chunks. Its conservation ledger tracks the removed generic material IDs as recovered and dispersed counts. Explicit browser diagnostic: `europaExtractJSON(options,recoveryFraction)`; **no automatic excavation on boot**. This is discrete-node accounting, not calibrated volume/mass, chemical composition, or scientifically valid ice-core recovery. Current generic terrain material IDs remain non-Europa species. Read inspector `world.experiment.materialAccounting` and `lastExtraction` after testing. Exact-source regression and browser execution of this revision are not yet verified. Changes are isolated from Entropy except for adding reusable terrain methods.
