@@ -59,41 +59,14 @@ export function createEntropy(){
  world.setWitnessNodes=nodes=>nodeMaker.set(nodes);
  const wanderer=createWanderer({terrain});
  world.content.add(wanderer.group);
- // Sparse reeds beside spawn, rooted in geological coordinates.
- // Use the same signed-field surface crossing as Wanderer's walkSurface.
+ // Entropy begins without flora or fauna. Their Arcana implementations remain untouched.
  const terrainSurface=createTerrainSurfaceQuery(terrain);
- const reeds=createMistsReeds(T,{
-  surface:terrainSurface,center:{x:1.4,z:1.5},
-  radius:terrain.getAperture(),
-  offset:()=>{const [x,z]=wanderer.inspect().offset;return {x,z}},
-  characters:()=>{const {x,z}=wanderer.inspect();return [{x,z}]},
-  parent:world.content
- });
- // The geometric prototypes remain intact under populations/potential.
  const botanicalOffset=()=>{const [x,z]=wanderer.inspect().offset;return {x,z}};
- const garden=createBBGarden(T,{surface:terrainSurface,offset:botanicalOffset,
-  characters:()=>{const {x,z}=wanderer.inspect();return [{x,z}]},
-  radius:terrain.getAperture(),parent:world.content,seed:741});
- const secondGarden=createSecondGarden(T,{terrain,surface:terrainSurface,offset:botanicalOffset,
-  characters:()=>{const {x,z}=wanderer.inspect();return [{x,z}]},
-  radius:terrain.getAperture(),parent:world.content,seed:741});
- const bestiary=createFirstBestiary(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
- const velvetDrifters=createVelvetDrifters(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
- const threadwyrms=createThreadwyrms(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
- const glasswings=createGlasswings(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
- const bellwraiths=createBellwraiths(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
- const lanternHermits=createLanternHermits(T,{surface:terrainSurface,offset:botanicalOffset,
-  wanderer:()=>wanderer.inspect(),parent:world.content,radius:terrain.getAperture(),seed:741});
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
  const debris=createBeadDebris(T,{terrain,offset:botanicalOffset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,abioentropy:cradleCollision,wanderer:{inspect:()=>wanderer.inspect(),innerRadius:10.07*.06}});
  // Eye is independent of the established populations and terrain.
  let eye=null,eyeError=null,eyeCamera=null;
- const creatureSystems=[bestiary,velvetDrifters,threadwyrms,glasswings,bellwraiths,lanternHermits];
+ const creatureSystems=[];
  const observeEyeWorld=()=>{
   const o=botanicalOffset(),targets=[];
   const w=wanderer.inspect();
@@ -110,7 +83,7 @@ export function createEntropy(){
   return targets;
  };
  // The retired single eye remains preserved in Arcana, not instantiated.
- const impactDispatcher=createImpactDispatcher({debris,creatures:creatureSystems,plants:[reeds,garden,secondGarden],terrain,surface:terrainSurface});
+ const impactDispatcher=createImpactDispatcher({debris,creatures:creatureSystems,plants:[],terrain,surface:terrainSurface});
  const cinderfall=createCinderfall(T,{surface:terrainSurface,offset:botanicalOffset,
   targets:()=>creatureSystems.flatMap(s=>s.inspect().creatures||[]),
   parent:world.content,radius:terrain.getAperture(),seed:741,
@@ -144,10 +117,10 @@ export function createEntropy(){
   return navigation.tap(x,y);
  };
 
- world.update=dt=>{updateCradle(dt);wanderer.update(dt);reeds.update(dt);garden.update(dt);secondGarden.update(dt);bestiary.update(dt);velvetDrifters.update(dt);threadwyrms.update(dt);glasswings.update(dt);bellwraiths.update(dt);lanternHermits.update(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
+ world.update=dt=>{updateCradle(dt);wanderer.update(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
  const inspectShell=world.inspect.bind(world);
- const materialSurvey=createMaterialSurvey({populations:[reeds,garden,secondGarden,...creatureSystems],debris});
+ const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},{name:'mists-reeds',...reeds.inspect()},garden.inspect(),secondGarden.inspect(),bestiary.inspect(),velvetDrifters.inspect(),threadwyrms.inspect(),glasswings.inspect(),bellwraiths.inspect(),lanternHermits.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
