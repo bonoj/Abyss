@@ -44,6 +44,12 @@ export function createEuropa(){
  world.europaSite=(x=0,z=0)=>({x,z,profile:world.europaProfile(x,z),
   surface:stratigraphy.sample(x,1.15,z),hypothesisOnly:true});
  const extractions=[];
+ world.compareSites=(sites=[{x:-3.1,z:2.2},{x:5,z:-3}])=>sites.map(({x,z})=>{
+  const profile=world.europaProfile(x,z);
+  const counts={};for(const cell of profile)counts[cell.unit]=(counts[cell.unit]||0)+1;
+  return {x,z,synthetic:true,counts,meanSoluteProxy:profile.reduce((n,v)=>n+v.composition.soluteProxy,0)/profile.length,
+   transportedLens:profile.some(cell=>cell.provenance.transportedLens),profile};
+ });
  world.extractTestCore=(options={x:0,z:0,radius:.8,yTop:3.6,yBottom:-3.6},recoveryFraction=1)=>{
   if(!Number.isFinite(recoveryFraction)||recoveryFraction<0||recoveryFraction>1)throw Error('invalid recovery fraction');
   const provenance={};
@@ -63,7 +69,8 @@ export function createEuropa(){
   ledger.transfer('inPlace','dispersed',dispersed);
   const report={...result,recovered,dispersed,provenance,parcels,
    provenanceAccountingMatches:parcels.length===result.count,
-   balanced:ledger.inspect().balanced};
+   balanced:ledger.inspect().balanced,
+   inventoryMatchesTerrain:JSON.stringify(ledger.inspect().state.inPlace)===JSON.stringify(terrain.inventoryNodes())};
   extractions.push(report);return report;
  };
  world.materialSurvey=()=>ledger.inspect();
