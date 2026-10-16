@@ -65,10 +65,32 @@ export function createEntropy(){
  const terrainSurface=createTerrainSurfaceQuery(terrain);
  const botanicalOffset=()=>{const [x,z]=wanderer.inspect().offset;return {x,z}};
  const articulated=createArticulatedTrial(T,{parent:world.content,surface:terrainSurface,actor:()=>wanderer.inspect(),offset:botanicalOffset});
- // On-demand scripted physics experiment; never changes the live Wanderer.
- let lastDropTrial=null;
- world.runLocomotionTrial=(options={})=>(lastDropTrial=runDropTrial({surface:terrainSurface,...options}));
- globalThis.entropyLocomotionJSON=()=>JSON.stringify(world.runLocomotionTrial(),null,2);
+ // Autonomous, visible, deterministic trial. The original Wanderer remains untouched.
+ let lastDropTrial=null,trialClock=0;
+ const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
+ trialMesh.name='Gravity trial mass';world.content.add(trialMesh);
+ const trialAnchor={x:1.3,z:0};
+ function restartTrial(options={}){
+  lastDropTrial=runDropTrial({surface:terrainSurface,...trialAnchor,...options});
+  trialClock=0;
+  return lastDropTrial;
+ }
+ world.runLocomotionTrial=restartTrial;
+ globalThis.entropyLocomotionJSON=()=>JSON.stringify(lastDropTrial??restartTrial(),null,2);
+ restartTrial();
+ function updateTrial(dt){
+  if(!lastDropTrial||lastDropTrial.status!=='completed'){trialMesh.visible=false;return}
+  trialClock+=Math.max(0,dt);
+  const samples=lastDropTrial.samples,period=lastDropTrial.parameters.duration+1;
+  const t=trialClock%period;
+  const index=Math.min(samples.length-1,Math.floor(t/(lastDropTrial.parameters.dt*lastDropTrial.parameters.sampleEvery)));
+  const a=samples[index],b=samples[Math.min(index+1,samples.length-1)];
+  const blend=b.t>a.t?Math.max(0,Math.min(1,(t-a.t)/(b.t-a.t))):0;
+  const y=a.body.position[1]+(b.body.position[1]-a.body.position[1])*blend;
+  const o=botanicalOffset();
+  trialMesh.position.set(trialAnchor.x-o.x,y,trialAnchor.z-o.z);
+  trialMesh.visible=true;
+ }
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
  const debris=createBeadDebris(T,{terrain,offset:botanicalOffset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,abioentropy:cradleCollision,wanderer:{inspect:()=>wanderer.inspect(),innerRadius:10.07*.06}});
  // Eye is independent of the established populations and terrain.
@@ -124,10 +146,10 @@ export function createEntropy(){
   return navigation.tap(x,y);
  };
 
- world.update=dt=>{updateCradle(dt);wanderer.update(dt);articulated.update(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
+ world.update=dt=>{updateCradle(dt);wanderer.update(dt);articulated.update(dt);updateTrial(dt);cinderfall.update(dt);debris.update(dt);if(eye&&!eyeError){try{eye.update(dt,eyeCamera)}catch(error){eyeError=String(error);console.error('Eye update disabled; Entropy continues',error)}}};
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'locomotion trial',scenario:'drop-and-settle',execution:'on-demand',lastReport:lastDropTrial},cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'locomotion trial',scenario:'drop-and-settle',execution:'autonomous looping visual replay',visible:trialMesh.visible,clock:trialClock,lastReport:lastDropTrial},cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
