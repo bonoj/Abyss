@@ -1,0 +1,94 @@
+name: Publish Abyss
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: abyss-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Assemble, stamp, and validate
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re, shutil
+          sha = os.environ['BUILD_SHA']
+          assert re.fullmatch(r'[0-9a-f]{40}', sha)
+          root = pathlib.Path('.')
+          site = pathlib.Path('site')
+          shutil.copytree(root, site, ignore=shutil.ignore_patterns('.git', '.github', 'site', '__pycache__', '.DS_Store'))
+          assert (site/'index.html').is_file(), 'Abyss requires root index.html'
+          (site/'build.json').write_text(json.dumps({'sha': sha}, separators=(',', ':'))+'\n')
+          # Version relative static HTML dependencies without modifying source.
+          for page in site.rglob('*.html'):
+              html = page.read_text()
+              def stamp(m):
+                  attr, quote, url = m.groups()
+                  if url.startswith(('http:', 'https:', '//', 'data:', '#', '/')) or not re.search(r'\.(?:js|mjs|css)(?:\?[^#]*)?(?:#.*)?$', url):
+                      return m.group(0)
+                  path = url.split('?', 1)[0].split('#', 1)[0]
+                  assert (page.parent/path).is_file(), f'Missing {path} referenced by {page}'
+                  return f'{attr}={quote}{path}?v={sha}{quote}'
+              html = re.sub(r'\b(src|href)\s*=\s*(["\x27])([^"\x27]+)\2', stamp, html)
+              page.write_text(html)
+          # Stamp relative JS module imports (static and dynamic string literals).
+          for module in list(site.rglob('*.js')) + list(site.rglob('*.mjs')):
+              source = module.read_text()
+              def stamp_import(m):
+                  q, url = m.groups()
+                  path = url.split('?',1)[0]
+                  assert (module.parent/path).is_file(), f'Missing import {path} in {module}'
+                  return q+path+'?v='+sha+q
+              source = re.sub(r'(["\x27])(\.{1,2}/[^"\x27\n]+?\.(?:js|mjs)(?:\?[^"\x27\n]*)?)\1', stamp_import, source)
+              module.write_text(source)
+          print('ASSEMBLED ABYSS', sha)
+          PY
+      - name: Syntax check
+        run: |
+          find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Verify public release
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          sha=os.environ['BUILD_SHA']
+          base='https://bonoj.github.io/Abyss/'
+          for attempt in range(36):
+              try:
+                  url=base+'build.json?verify='+sha+'&attempt='+str(attempt)
+                  req=urllib.request.Request(url,headers={'Cache-Control':'no-cache'})
+                  with urllib.request.urlopen(req,timeout=15) as response:
+                      observed=json.load(response)['sha']
+                  assert observed==sha, f'Expected {sha}, got {observed}'
+                  with urllib.request.urlopen(base+'?verify='+sha+'&attempt='+str(attempt),timeout=15) as response:
+                      html=response.read().decode()
+                  assert '<html' in html.lower() and '</html>' in html.lower()
+                  print('VERIFIED PUBLIC ABYSS',sha,base)
+                  break
+              except Exception as exc:
+                  print('NOT YET VERIFIED',attempt+1,repr(exc))
+                  if attempt==35: raise
+                  time.sleep(5)
+          PY
