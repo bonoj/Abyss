@@ -44,9 +44,11 @@ export function createAlternatingFeet({surface}={}){
   lastVerticalImpulse=0;
   if(count){
    const floor=Math.max(...feet.map(f=>f.getAnchor()?.y??-Infinity));
-   const centerFloor=floor+0.18;
+   const centerFloor=floor+0.65;
    if(body.y<centerFloor){verticalCorrectionTotal+=centerFloor-body.y;body.y=centerFloor;}
    if(body.y<=centerFloor+1e-7&&body.vy<0){lastVerticalImpulse=-body.vy;body.vy=0;verticalImpulseTotal+=lastVerticalImpulse;}
+   const stance=feet[active].getAnchor()||feet.find(f=>f.getAnchor())?.getAnchor();
+   if(stance){const dx=body.x-stance.x,dz=body.z-stance.z,d=Math.hypot(dx,dz);if(d>.52){const nx=dx/d,nz=dz/d;body.x-=nx*(d-.52);body.z-=nz*(d-.52);const outward=body.vx*nx+body.vz*nz;if(outward>0){body.vx-=outward*nx;body.vz-=outward*nz;}}}
    verticalSupportSteps++;
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
