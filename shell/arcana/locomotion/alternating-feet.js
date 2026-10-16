@@ -41,7 +41,7 @@ export function createAlternatingFeet({surface}={}){
     const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
     // Finite tensile linkage prevents an anchored foot from becoming an infinite reach motor.
     const maxLength=1.04,tensionStiffness=240,tensionDamping=24,maxTension=100;
-    const tension=Math.min(maxTension,Math.max(0,tensionStiffness*Math.max(0,length-maxLength)+tensionDamping*Math.max(0,lengthRate)));
+    const tension=Math.min(maxTension,Math.max(0,tensionStiffness*Math.max(0,length-maxLength)+ (length>restLength?tensionDamping*Math.max(0,lengthRate):0)));
     const connected=length<=maxLength;
     if(connected)connectedSteps++;else disconnectedSteps++;
     if(tension>0){tensileSteps++;peakTension=Math.max(peakTension,tension);}
