@@ -1,4 +1,5 @@
 import {solveTwoBone} from './two-bone-ik.js';
+import {createFootContacts} from './foot-contacts.js';
 // Visual IK trial, driven by the existing Wanderer's authoritative position.
 // No navigation or force ownership. Two alternating planted feet and terrain targets.
 export function createArticulatedTrial(T,{parent,surface,actor,offset}){
@@ -14,32 +15,28 @@ export function createArticulatedTrial(T,{parent,surface,actor,offset}){
  });
  const axis=new T.Vector3(0,1,0),a=new T.Vector3(),b=new T.Vector3(),mid=new T.Vector3();
  const setLink=(mesh,start,end,radius)=>{a.set(start.x,start.y,start.z);b.set(end.x,end.y,end.z);mid.copy(a).add(b).multiplyScalar(.5);mesh.position.copy(mid);mesh.scale.set(radius,a.distanceTo(b),radius);mesh.quaternion.setFromUnitVectors(axis,b.sub(a).normalize())};
- let previous=null,heading=0,elapsed=0;
+ const contacts=createFootContacts({surface});
+ let previous=null,heading=0;
  function update(dt){
-  const p=actor(),o=offset(),step=Math.min(.05,Math.max(0,dt));elapsed+=step;
+  const p=actor(),o=offset();
   if(previous){const dx=p.x-previous.x,dz=p.z-previous.z;if(Math.hypot(dx,dz)>.001)heading=Math.atan2(dz,dx)}
-  const moving=!!p.target||p.travelSpeed>.05;
-  const forward={x:Math.cos(heading),z:Math.sin(heading)},lateral={x:-forward.z,z:forward.x};
+    const forward={x:Math.cos(heading),z:Math.sin(heading)},lateral={x:-forward.z,z:forward.x};
   const body={x:p.x-o.x,y:p.y+.72,z:p.z-o.z};
   torso.position.set(body.x,body.y,body.z);torso.scale.set(.23,.18,.30);
+  const footTargets=contacts.update(Math.min(.05,Math.max(0,dt)),p,heading);
   for(const leg of legs){
    const root={x:body.x+lateral.x*leg.side*.16,y:body.y-.08,z:body.z+lateral.z*leg.side*.16};
-   const phase=elapsed*7+leg.phase;
-   const stride=moving?Math.sin(phase)*.25:0;
-   const lift=moving?Math.max(0,Math.cos(phase))*.16:0;
-   const tx=p.x+lateral.x*leg.side*.25+forward.x*stride;
-   const tz=p.z+lateral.z*leg.side*.25+forward.z*stride;
-   const ground=surface(tx,tz);
-   const target={x:tx-o.x,y:(ground??p.y)+.04+lift,z:tz-o.z};
+   const foot=footTargets.find(f=>f.side===leg.side);
+   const target={x:foot.target.x-o.x,y:foot.target.y,z:foot.target.z-o.z};
    const pole={x:lateral.x*leg.side*.7-forward.x*.15,y:.12,z:lateral.z*leg.side*.7-forward.z*.15};
    const solution=solveTwoBone(root,target,{upper:.48,lower:.48,pole});
    setLink(leg.links[0],solution.root,solution.joint,.044);
    setLink(leg.links[1],solution.joint,solution.end,.035);
    leg.joints[0].position.set(solution.joint.x,solution.joint.y,solution.joint.z);
    leg.joints[1].position.set(solution.end.x,solution.end.y,solution.end.z);
-   leg.error=solution.error;leg.planted=ground!=null&&lift<.015;
+   leg.error=solution.error;leg.planted=foot.phase==='stance';
   }
   previous={x:p.x,z:p.z};
  }
- return {group,update,inspect:()=>({name:'articulated IK trial',mode:'visual follower; locomotion still owned by Wanderer',legs:legs.map(l=>({side:l.side,error:+l.error.toFixed(4),contactCandidate:l.planted}))})};
+ return {group,update,inspect:()=>({name:'articulated IK trial',mode:'visual follower; locomotion still owned by Wanderer',contacts:contacts.inspect(),legs:legs.map(l=>({side:l.side,error:+l.error.toFixed(4),planted:l.planted}))})};
 }
