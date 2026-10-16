@@ -5,9 +5,9 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
  if(!contact||typeof contact.resolve!=='function')throw Error('contact system required');
  const ground=surface(x,z);
  if(!Number.isFinite(ground))throw Error('initial surface required');
- const state={x,y:ground+radius+height,z,vx:0,vy:0,vz:0,contact:false,time:0,steps:0,impacts:0,maxCorrection:0};
+ const state={x,y:ground+radius+height,z,vx:0,vy:0,vz:0,contact:false,time:0,steps:0,impacts:0,maxCorrection:0,pitch:0,omega:0,inertia:.085,torque:0};
  let lastContact=null,wallContacts=0,activeContact=null;
- let accumulator=0,footAuthoritySteps=0,terrainAuthoritySteps=0;
+ let accumulator=0,footAuthoritySteps=0,terrainAuthoritySteps=0,peakPitch=0,firstBodyImpact=null;
  const events=[];
  function impulse(vx=0,vy=0,vz=0){state.vx+=vx;state.vy+=vy;state.vz+=vz;events.push({t:+state.time.toFixed(4),type:'impulse',velocity:[vx,vy,vz]})}
  function tick(){
@@ -15,12 +15,33 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   const acceleration=gravity.sample(s,s.time);
   let activeDrive=false;
   if(actuator){const drive=actuator.sample(s,{dt:step,acceleration,contact:activeContact});acceleration.x+=drive.x;acceleration.y+=drive.y;acceleration.z+=drive.z;activeDrive=!!(drive.x||drive.y||drive.z);}
+  // Planar rigid-body pitch: actuator torque is integrated by the same fixed-step clock.
+  s.torque=Number.isFinite(acceleration.torque)?acceleration.torque:0;
+  s.omega+=s.torque/s.inertia*step;
+  s.pitch+=s.omega*step;
+  peakPitch=Math.max(peakPitch,Math.abs(s.pitch));
   s.vx+=acceleration.x*step;s.vy+=acceleration.y*step;s.vz+=acceleration.z*step;
   s.x+=s.vx*step;s.y+=s.vy*step;s.z+=s.vz*step;
   const wasSupported=s.contact;
   const footSupport=!!actuator?.hasFootSupport?.();
   if(footSupport)footAuthoritySteps++;else terrainAuthoritySteps++;
   const result=contact.resolve(s,{radius,dt:step,acceleration,activeDrive,footSupport});
+  // Finite body: sample the two ends of a short pitch-oriented capsule.
+  // Contact impulses affect both translation and angular momentum.
+  const half=.30,cs=Math.cos(s.pitch),sn=Math.sin(s.pitch);
+  for(const sign of [-1,1]){
+   const rx=sign*half*sn,ry=sign*half*cs;
+   const probe={x:s.x+rx,y:s.y+ry,z:s.z,vx:s.vx+s.omega*ry,vy:s.vy-s.omega*rx,vz:s.vz};
+   const bodyHit=contact.resolve(probe,{radius:radius*.7,dt:step,acceleration,activeDrive:false,footSupport:false});
+   if(bodyHit.hit&&bodyHit.penetration>0){
+    if(!firstBodyImpact)firstBodyImpact={time:+s.time.toFixed(4),end:sign,penetration:bodyHit.penetration,pitch:s.pitch};
+    s.x+=probe.x-(s.x+rx);s.y+=probe.y-(s.y+ry);
+    const jx=probe.vx-(s.vx+s.omega*ry),jy=probe.vy-(s.vy-s.omega*rx);
+    const effective=1+(rx*rx+ry*ry)/s.inertia;
+    s.vx+=jx/effective;s.vy+=jy/effective;
+    s.omega+=(ry*jx-rx*jy)/s.inertia/effective;
+   }
+  }
   if(result.penetration)s.maxCorrection=Math.max(s.maxCorrection,result.penetration);
   if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:result.supported});
   s.contact=result.supported||footSupport;
@@ -34,6 +55,6 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   s.steps++;s.time=s.steps*step;
  }
  function update(dt){accumulator+=Math.min(Math.max(0,dt),.1);let count=0;while(accumulator>=step&&count<12){tick();accumulator-=step;count++}}
- function inspect(){return {name:'kinetic body',mode:'live fixed-step',step,time:+state.time.toFixed(4),steps:state.steps,position:[state.x,state.y,state.z].map(v=>+v.toFixed(5)),velocity:[state.vx,state.vy,state.vz].map(v=>+v.toFixed(5)),contact:state.contact,impacts:state.impacts,wallContacts,verticalAuthority:{footSteps:footAuthoritySteps,terrainSteps:terrainAuthoritySteps},lastContact,maxPreCorrectionPenetration:+state.maxCorrection.toFixed(6),events:events.slice(-12)}}
+ function inspect(){return {name:'kinetic body',mode:'live fixed-step',step,time:+state.time.toFixed(4),steps:state.steps,position:[state.x,state.y,state.z].map(v=>+v.toFixed(5)),velocity:[state.vx,state.vy,state.vz].map(v=>+v.toFixed(5)),contact:state.contact,rotation:{pitch:state.pitch,omega:state.omega,inertia:state.inertia,torque:state.torque,peakAbsolutePitch:peakPitch,firstBodyImpact},impacts:state.impacts,wallContacts,verticalAuthority:{footSteps:footAuthoritySteps,terrainSteps:terrainAuthoritySteps},lastContact,maxPreCorrectionPenetration:+state.maxCorrection.toFixed(6),events:events.slice(-12)}}
  return {state,update,impulse,inspect};
 }
