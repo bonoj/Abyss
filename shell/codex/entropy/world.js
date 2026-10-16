@@ -78,11 +78,15 @@ export function createEntropy(){
  
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
  trialMesh.name='Kinetic body';world.content.add(trialMesh);
+ const footMesh=new T.Mesh(new T.SphereGeometry(.105,12,8),new T.MeshStandardMaterial({color:0x42d9c4,roughness:.5}));
+ footMesh.name='Planted foot';footMesh.visible=false;world.content.add(footMesh);
  world.impulseKineticBody=(x=2.2,y=0,z=0)=>kinetic.impulse(x,y,z);
  function updateKinetic(dt){
   kinetic.update(dt);
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
+  const foot=drive.getAnchor();footMesh.visible=!!foot;
+  if(foot)footMesh.position.set(foot.x-o.x,foot.y,foot.z-o.z);
  }
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
  const debris=createBeadDebris(T,{terrain,offset:botanicalOffset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,abioentropy:cradleCollision,wanderer:{inspect:()=>wanderer.inspect(),innerRadius:10.07*.06}});
