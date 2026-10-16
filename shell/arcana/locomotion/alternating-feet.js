@@ -4,6 +4,7 @@ import {createPlantedFoot} from './planted-foot.js';
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
+ let strutForceTotal=0,strutPeakForce=0,strutLoadedSteps=0,lastStrut=null;
  let geometrySteps=0,overextendedSteps=0,maxHorizontal=0,maxVerticalCorrection=0,largeCorrectionCount=0,lastGeometry=null;
  const geometryEvents=[];
  function sample(body,context){
@@ -27,6 +28,22 @@ export function createAlternatingFeet({surface}={}){
    }
   }
   if(feet[active].inspect().phase!=='swing')dualSwing=false;
+  const stance=feet[active].getAnchor()||feet.find(f=>f.getAnchor())?.getAnchor();
+  lastStrut=null;
+  if(stance){
+   const dx=body.x-stance.x,dy=body.y-stance.y,dz=body.z-stance.z;
+   const length=Math.hypot(dx,dy,dz),restLength=.84,stiffness=180,damping=20,maxForce=80;
+   if(length>1e-8){
+    const nx=dx/length,ny=dy/length,nz=dz/length;
+    const lengthRate=body.vx*nx+body.vy*ny+body.vz*nz;
+    const compression=Math.max(0,restLength-length);
+    const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
+    force.x+=magnitude*nx;force.y+=magnitude*ny;force.z+=magnitude*nz;
+    strutForceTotal+=magnitude;strutPeakForce=Math.max(strutPeakForce,magnitude);
+    if(magnitude>0)strutLoadedSteps++;
+    lastStrut={time:body.time,active,length,restLength,compression,lengthRate,magnitude,direction:[nx,ny,nz]};
+   }
+  }
   return force;
  }
  function hasFootSupport(){return feet.some(f=>!!f.getAnchor());}
@@ -40,34 +57,25 @@ export function createAlternatingFeet({surface}={}){
   const loaded=count===1?planted.indexOf(true):-1;
   if(loaded>=0&&lastLoaded>=0&&loaded!==lastLoaded)loadTransferCount++;
   if(loaded>=0)lastLoaded=loaded;
-  // Unilateral vertical foot-ground reaction. No extra acceleration or second integrator.
-  // A planted foot can push up but never pull down. Terrain body response is bypassed
-  // on these steps by kinetic-body; contact sampling remains available.
+  // Strut force was applied through the body's sole velocity integrator in sample().
+  // Observe geometry here; never project position or zero downward velocity.
   lastVerticalImpulse=0;
   if(count){
-   const floor=Math.max(...feet.map(f=>f.getAnchor()?.y??-Infinity));
    const stance=feet[active].getAnchor()||feet.find(f=>f.getAnchor())?.getAnchor();
    const dx=stance?body.x-stance.x:0,dz=stance?body.z-stance.z:0;
-   const horizontal=Math.hypot(dx,dz);
-   const legLength=.84;
-   geometrySteps++;
-   maxHorizontal=Math.max(maxHorizontal,horizontal);
+   const horizontal=Math.hypot(dx,dz),legLength=.84;
+   geometrySteps++;maxHorizontal=Math.max(maxHorizontal,horizontal);
    if(horizontal>legLength)overextendedSteps++;
-   const centerFloor=(stance?.y??floor)+Math.sqrt(Math.max(0,legLength*legLength-horizontal*horizontal));
-   const correction=Math.max(0,centerFloor-body.y);
-   if(correction){verticalCorrectionTotal+=correction;maxVerticalCorrection=Math.max(maxVerticalCorrection,correction);if(correction>.05)largeCorrectionCount++;body.y=centerFloor;}
-   lastGeometry={time:body.time,active,anchor:stance?{...stance}:null,horizontal,legLength,overextended:horizontal>legLength,centerFloor,bodyY:body.y,vy:body.vy,correction};
-   if(horizontal>legLength||correction>.05){geometryEvents.push({...lastGeometry});if(geometryEvents.length>16)geometryEvents.shift();}
-   if(body.y<=centerFloor+1e-7&&body.vy<0){lastVerticalImpulse=-body.vy;body.vy=0;verticalImpulseTotal+=lastVerticalImpulse;}
-   // The planted leg's inextensible length couples vertical clearance to horizontal reach.
-   // It can support compression but never pull the body down.
+   const centerFloor=(stance?.y??0)+Math.sqrt(Math.max(0,legLength*legLength-horizontal*horizontal));
+   lastGeometry={time:body.time,active,anchor:stance?{...stance}:null,horizontal,legLength,overextended:horizontal>legLength,centerFloor,bodyY:body.y,vy:body.vy,correction:0};
+   if(horizontal>legLength){geometryEvents.push({...lastGeometry});if(geometryEvents.length>16)geometryEvents.shift();}
    verticalSupportSteps++;
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
-   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||hasFootSupport()});
+   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||hasFootSupport(),skipTether:true});
   });
  }
- function inspect(){return {name:'alternating feet',mode:'contact-derived load share witness; horizontal drive remains single stance',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'finite-force unilateral compliant strut; single stance drive',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,hasFootSupport,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
