@@ -8,7 +8,8 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
  const strokeEnd=reach*.72,lead=reach*.55,swingRate=2.2;
  function sample(body,{dt,acceleration,contact}){
   forceX=0;
-  if(!contact?.supported){unsupportedSteps++;phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
+  if(!contact?.supported){unsupportedSteps++;if(phase!=='swing')phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
+  if(phase==='swing')return {x:0,y:0,z:0};
   if(!anchor){anchor={x:body.x,y:body.y-.18,z:body.z};plantCount++}
   extension=Math.hypot(body.x-anchor.x,body.z-anchor.z);
   if(extension>=reach){phase='taut';return {x:0,y:0,z:0}}
