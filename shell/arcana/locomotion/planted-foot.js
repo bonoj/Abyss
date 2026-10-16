@@ -24,10 +24,10 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   phase='powered stance';
   return {x:forceX/mass,y:0,z:0};
  }
- function constrain(body,{dt}){
+ function constrain(body,{dt,supported}){
   if(phase==='swing'){
    swingProgress=Math.min(1,swingProgress+swingRate*dt);
-   if(swingProgress>=1&&swingTarget){
+   if(swingProgress>=1&&swingTarget&&supported){
     const y=surface?.(swingTarget.x,swingTarget.z);
     if(Number.isFinite(y)){
      anchor={x:swingTarget.x,y,z:swingTarget.z};
@@ -50,6 +50,6 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   if(outward>0){body.vx-=nx*outward;body.vz-=nz*outward;radialImpulseTotal+=mass*outward;}
   extension=reach;phase='taut';
  }
- function inspect(){return {name:'planted foot',mode:'anchored unilateral horizontal tether',phase,anchor,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,poweredSteps,unsupportedSteps,forceX}}
- return {sample,constrain,inspect,getAnchor:()=>anchor};
+ function inspect(){return {name:'planted foot',mode:'stance / unloaded swing / terrain replant',phase,anchor,swingTarget,swingProgress,strokeEnd,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,swingCount,releaseCount,failedPlants,poweredSteps,unsupportedSteps,forceX}}
+ return {sample,constrain,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||swingTarget};
 }
