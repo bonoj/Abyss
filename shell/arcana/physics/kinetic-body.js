@@ -13,6 +13,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
  function tick(){
   const s=state;
   const acceleration=gravity.sample(s,s.time);
+  if(actuator){const drive=actuator.sample(s,{dt:step,acceleration,contact:activeContact});acceleration.x+=drive.x;acceleration.y+=drive.y;acceleration.z+=drive.z;}
   s.vx+=acceleration.x*step;s.vy+=acceleration.y*step;s.vz+=acceleration.z*step;
   s.x+=s.vx*step;s.y+=s.vy*step;s.z+=s.vz*step;
   const wasSupported=s.contact;
