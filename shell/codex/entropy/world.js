@@ -46,7 +46,7 @@ export function createEntropy(){
  abioentropy.group.add(abioentropy.content);
  world.content.add(abioentropy.group);
  world.abioentropy=abioentropy;
- const terrain=createTerrain({topology:'flatlandia'});
+ const terrain=createTerrain({topology:'atlas'});
  world.content.add(terrain.group);
  world.observationTargets=()=>({terrain:terrain.group});
  const equatorial=createEquatorialTreatment({terrain,parent:world.content});
