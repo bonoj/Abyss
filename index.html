@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Abyss</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif}body{min-height:100dvh;margin:0;display:grid;place-items:center;background:#090b12;color:#e5e7ef}main{text-align:center;padding:2rem}h1{font-size:clamp(3rem,14vw,8rem);font-weight:300;letter-spacing:.12em;margin:0}p{opacity:.6}code{font-size:.8rem;opacity:.7}
+</style>
+</head>
+<body>
+<main><h1>ABYSS</h1><p>Fling something in.</p><code id="build">Checking deployment…</code></main>
+<script>
+fetch('./build.json?ts='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(x=>{document.querySelector('#build').textContent=x.sha.slice(0,8)}).catch(()=>{document.querySelector('#build').textContent='Unverified build'});
+</script>
+</body>
+</html>
