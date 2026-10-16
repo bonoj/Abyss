@@ -23,26 +23,26 @@ shell/
 ├── athanor/             # world host, renderer, scheduling, instrumentation
 ├── arcana/              # reusable capabilities
 ├── codex/
-│   └── genesis/
-│       └── world.js     # canonical authored Genesis world
+│   ├── genesis/world.js # preserved original
+│   └── entropy/world.js # currently mounted world
 ├── archive/sieve/       # preserved non-runtime outreach artifacts
 └── HANDOFF.md
 ```
 
 `shell/sieve/compose.js` and the redundant `shell/codex/sieve/world.js` have been removed. Genesis was byte-identical to the old Sieve world. The top-level Shell directory is **one deployable application** that can host multiple Codex worlds. Separate top-level Abyss folders are only necessary for independent applications/runtimes, not for every world.
 
-Shell's `index.html` imports `./main.js`; `main.js` imports Athanor and `./codex/genesis/world.js`, mounts the world, and attaches its view. Extend this composition deliberately as worlds are added.
+Shell's `index.html` fetches `build.json` and imports the SHA-qualified loader. `shell/main.js` mounts `./codex/entropy/world.js` (Genesis is preserved but inactive). The publisher bundles all local modules into `assets/main.<SHA>.js`; do not depend on legacy query-string cache busting. Extend this composition deliberately as worlds are added.
 
 ## Publication contract
 
-Abyss's Pages workflow publishes the repository as a static site **without rewriting experiment HTML, CSS, JavaScript, imports, or asset paths**. It excludes Git internals and workflow files. It discovers nested `index.html` entries, checks packaged JS syntax, uploads a single Pages artifact, deploys it, and checks the public manifest and HTML entries.
+Abyss's Pages workflow publishes the repository as a static site **while preserving source experiments; Shell is deliberately bundled into an immutable SHA-addressed asset**. It excludes Git internals and workflow files. It discovers nested `index.html` entries, checks packaged JS syntax, uploads a single Pages artifact, deploys it, and checks the public manifest and HTML entries.
 
 - `/Abyss/build.json`: exact **Abyss deployment commit SHA**.
 - `/Abyss/pages.json`: that SHA plus discovered experiment entry folders.
-- Shell's `athanor/athanor.js` fetches `../../build.json` and displays the first eight characters of the SHA. The observed on-screen SHA should match the successful deployment's head commit.
+- Shell's HTML also fetches `../build.json` and loads the matching SHA-addressed bundle; Athanor displays the first eight characters of the SHA. The observed on-screen SHA should match the successful deployment's head commit.
 - Third-party imports such as pinned Three.js are allowed. Shell's first-party runtime is local to `shell/`.
 - Pages success and HTTP reachability **do not** prove that a world boots or that every dynamic import resolves. Verify browser execution separately.
-- HTML/module caching remains a producer concern. Do not mistake a fresh manifest for proof that an old browser tab executed the new build. Never ask the user to clear browser caches manually as the default recovery.
+- The publisher's SHA-addressed bundle is the established solution to first-party module staleness. HTML/module caching remains a producer concern. Do not mistake a fresh manifest for proof that an old browser tab executed the new build. Never ask the user to clear browser caches manually as the default recovery.
 - Top-level experiments share a Pages deployment and origin, despite separate source folders. Avoid service workers and shared-origin storage that interfere with other worlds.
 
 ## Current deployment trigger — precise scope
@@ -62,3 +62,7 @@ A Shell commit deploys the entire Abyss artifact. A README-only commit does **no
 Use Git history to restore the affected world or runtime; preserve other worlds and top-level experiments. Diagnose syntax, missing imports, wrong relative paths, publication failures, and build-SHA mismatches separately. Do not alter the original Hermeticon repository to repair Abyss. Record the exact commit, public URL, Actions run, and observed runtime state in the relevant handoff.
 
 **The objective:** create worlds rapidly in Codex, use existing Athanor and Arcana, and keep publishing predictable rather than turning every experiment into a new infrastructure project.
+
+## Current frontier (2026-10-16)
+
+Entropy uses `createTerrain({topology:'atlas'})`: deterministic 85×85 elevation atlas across a 50.4×50.4 terrain, broad flats, two mesas, and jagged peaks. Existing signed-field deformation, Wanderer, meteors, and BB debris remain. The bespoke BB sheep were **removed** after an explosion-time freeze; their deleted implementation must not be restored. Next: reusable Arcana fauna assembly, anatomy, behavior, lifecycle, and exact BB ownership transfer; use `first-bestiary.js` and `physics/bead-debris.js` as the contracts. See [Shell handoff](shell/HANDOFF.md) for details. `Go to Abyss` means start at this README, follow the handoff, inspect current source and Actions before modifying anything.
