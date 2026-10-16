@@ -24,7 +24,7 @@ If Shell fails to wake, check the console and the module graph, then workflow lo
 
 ## Active experiment — composable locomotion
 - **Read [LOCOMOTION.md](./LOCOMOTION.md) immediately after this handoff.** It is the authoritative working plan, implementation ledger, acceptance tests, and next frontier for the Entropy Wanderer.
-- User chose a single articulated Wanderer exploring gravity-bound, gravity-resisting, and gravity-decoupled locomotion. Two-bone IK and an isolated visual follower are committed; real stance/swing foot planting is next. Do not mistake visual following for physical locomotion.
+- **Current frontier (2026-10-16):** Entropy's kinetic-body trial now mounts `arcana/locomotion/connected-limbs.js` (N=2): dynamic finite-mass feet joined to the body by bilateral compliant links, with approximate unilateral terrain contact. This is a first connectivity experiment, **not** a rigid articulated joint solver or verified stable gait. The earlier fixed-anchor `contact-limbs.js` fixture and its perturbation failures are retained as historical evidence. Read LOCOMOTION.md sections **BM–BN** for the pivot, precise limitations, and next experiments; inspect current source before continuing. The Wanderer-driven visual IK follower is a separate legacy display, not the kinetic body's locomotion authority.
 - Previous fauna assembly plan below is historical/superseded, **not the active next task**.
 
 ## Current Entropy state — 2026-10-16
