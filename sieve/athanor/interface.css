@@ -1,0 +1,66 @@
+
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b14;color:#f5dfb2;font-family:system-ui}canvas{display:block;touch-action:none}#stage{position:fixed;inset:0}#title{position:fixed;left:0;right:0;top:max(14px,env(safe-area-inset-top));text-align:center;pointer-events:none;text-shadow:0 3px 12px #000}h1{font:normal clamp(24px,5vw,43px) Georgia,serif;letter-spacing:.14em;margin:0}#tag{font-size:10px;letter-spacing:.25em;color:#c4b291;margin-top:7px}#hud{position:fixed;bottom:0;left:0;right:0;padding:25px 12px max(20px,env(safe-area-inset-bottom));text-align:center;background:linear-gradient(transparent,#050b14e8 35%)}#buttons{display:flex;justify-content:center;gap:9px}button{border:1px solid #9c8556aa;background:#15202acb;color:#f0d5a0;padding:13px 18px;border-radius:9px;font:600 12px system-ui;min-height:48px}#status{font:11px system-ui;letter-spacing:.08em;color:#c0c4c2;margin:0 0 12px}#error{position:fixed;top:35%;left:12px;right:12px;color:#ffb7a5;font:12px monospace;white-space:pre-wrap;text-align:center} #probe{position:fixed;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:30;background:#101d29e8;color:#d9eced;border:1px solid #6f999e;border-radius:9px;padding:8px 12px;font:12px system-ui}#probePanel{display:none;position:fixed;inset:calc(70px + env(safe-area-inset-top)) 9px 100px;z-index:29;background:#07121df2;color:#d9e6e5;overflow:auto;padding:14px;border:1px solid #6f999e;border-radius:10px;font:12px/1.45 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}#probePanel.open{display:block}#probeActions{display:flex;gap:8px;position:sticky;top:-14px;background:#07121d;padding:8px 0}#probeActions button{background:#223c4b;color:#fff;border:1px solid #648c9d;border-radius:6px;padding:9px} #buildRow{display:flex;align-items:center;justify-content:center;gap:6px;margin:5px auto 0;pointer-events:auto;color:#a6b7b9;font:10px ui-monospace,monospace}#populationNext{position:fixed;z-index:22;right:12px;bottom:95px;min-width:74px;min-height:44px;border:1px solid #9c8556aa;background:#15202ae8;color:#f0d5a0;border-radius:8px;font:700 13px monospace;cursor:pointer}#fresh{width:40px;height:40px;padding:0;min-height:40px;border:0;background:transparent;color:#c4b291;font-size:23px;cursor:pointer}#containmentAlarm{display:none;position:fixed;z-index:35;left:10px;right:10px;top:calc(65px + env(safe-area-inset-top));background:#531b19ee;color:#ffe9d7;border:2px solid #ff6955;border-radius:9px;padding:12px;font:700 12px/1.4 ui-monospace,monospace;white-space:pre-wrap;pointer-events:none}#containmentAlarm.on{display:block}#fps{font:12px ui-monospace,monospace;color:#e7dbb7;margin-left:8px}#mapLens{position:fixed;z-index:24;left:12px;top:calc(12px + env(safe-area-inset-top));min-width:118px;padding:9px 12px;background:#15202ae8;color:#f0d5a0;border:1px solid #9c8556aa}#wanderControls{position:fixed;z-index:20;bottom:77px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px}#wanderControls button{min-width:47px;padding:10px 12px;background:#15202ae8}#wanderCoords{font:11px monospace;color:#e5d0a8;min-width:70px;text-align:center}
+/* Trilith presentation: instruments below title; controls bottom-center, wrap upward. */
+#title{z-index:21}#title h1{font-size:clamp(19px,5vw,36px);letter-spacing:.12em}#tag,#status{display:none}#buildRow{margin-top:2px}#hud{z-index:25;pointer-events:none;padding:0 12px max(12px,env(safe-area-inset-bottom));background:none}#buttons{pointer-events:auto;margin:auto;max-width:420px;display:flex;flex-wrap:wrap-reverse;align-items:center;justify-content:center;gap:8px}#buttons button{position:static;transform:none;min-height:44px;min-width:44px;flex:0 0 auto}#probe{order:100;z-index:auto}#mapLens{order:20;min-width:0}#populationNext{order:10}#probePanel{z-index:40;inset:calc(80px + env(safe-area-inset-top)) 9px calc(80px + env(safe-area-inset-bottom))}#wanderControls{bottom:calc(74px + env(safe-area-inset-bottom))}
+
+/* Shared optical center: same line box for metadata and refresh. */
+#buildRow{display:flex;align-items:center;justify-content:center;gap:12px;line-height:1.25}#buildRow>span,#buildRow>button{display:inline-flex;align-items:center;justify-content:center;line-height:1.25;margin:0;height:32px;min-height:32px;vertical-align:middle}#buildRow #fresh{width:32px;padding:0;font-size:23px}
+/* Nonmodal developer inspection: small, upward-expanding sheet above controls. */
+#probePanel{inset:auto 12px calc(96px + env(safe-area-inset-bottom));width:min(520px,calc(100% - 24px));margin:0 auto;max-height:min(45dvh,420px);padding:10px 12px;overflow:hidden;z-index:28;box-shadow:0 8px 30px #0008}#probeActions{position:static;top:auto;display:flex;justify-content:space-between;gap:8px;padding:0;background:none}#probeActions button{min-height:40px;padding:8px 12px}#probeText{display:none!important;height:min(29dvh,260px)!important;min-height:110px;max-width:100%;margin-top:8px}#probePanel.details #probeText{display:block!important}#probePanel.details{overflow:auto}#probePanel:not(.details){max-height:76px}#probePanel.open{display:block}
+
+/* Existing three-button instrument grammar. No competing order declarations.
+   Explicit slots reserve refresh (right), inspect (middle), globe (left).
+   Later instruments default to the next slot and cannot move these three. */
+#buttons{max-width:100%;gap:6px;flex-direction:row-reverse;flex-wrap:wrap-reverse;justify-content:flex-start}
+#buttons > button{order:10;height:46px;min-height:46px;min-width:46px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;font-size:21px;background:#172333;border:1px solid #66543a;border-radius:9px;color:#d9b879;opacity:1;outline:none;box-shadow:none}
+#buttons #fresh{order:0;width:46px;height:46px}
+#buttons #probe{order:1;font-size:23px}
+#buttons #edgeLens{order:2;font-size:23px;touch-action:manipulation}
+#buttons > button:focus-visible{outline:2px solid #d9b879;outline-offset:2px}
+#buttons svg{display:block;flex:none}
+/* Build identifier shares FPS typography; FPS remains the single style source. */
+#buildRow #build{font:inherit;font-size:12px;color:#e7dbb7}
+
+
+/* Explicitly requested fourth instrument: rock palette, placed to the left of globe. */
+#buttons #rockCycle{order:3;font-size:23px;touch-action:manipulation}
+
+/* Octocat-adjacent repository drawer: same instrument grammar, opens above bar. */
+#buttons #githubToggle{order:4;font-size:23px;touch-action:manipulation}
+#githubPanel{pointer-events:auto;position:absolute;right:12px;bottom:calc(62px + env(safe-area-inset-bottom));z-index:27;width:min(280px,calc(100vw - 24px));padding:12px;background:#101c2aef;border:1px solid #9c8556aa;border-radius:10px;box-shadow:0 8px 28px #0009;text-align:left}
+#githubPanel[hidden]{display:none}
+#githubPanel .githubPanelTitle{font:600 12px system-ui;color:#f0d5a0;margin-bottom:10px}
+#githubPanel a{display:block;padding:11px 10px;margin-top:6px;min-height:44px;border:1px solid #66543a;border-radius:8px;background:#172333;color:#e7dbb7;text-decoration:none;font:600 12px system-ui}
+#githubPanel a:focus-visible{outline:2px solid #d9b879;outline-offset:2px}
+
+/* Sieve drawer: existing brass instrument grammar and protected title/control margins. */
+#buttons #sieveToggle{order:5;font-size:23px;touch-action:manipulation}
+#sieveOverlay[hidden]{display:none}
+#sieveOverlay{position:fixed;z-index:24;top:calc(92px + env(safe-area-inset-top));bottom:calc(88px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:900px;margin:0 auto;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#101c2af5;border:1px solid #9c8556aa;border-radius:10px;box-shadow:0 8px 30px #000a}
+#sieveOverlayHead{display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:5px 8px 5px 16px;border-bottom:1px solid #66543a;color:#f0d5a0;font:600 13px Georgia,serif;letter-spacing:.14em}
+#sieveClose{min-width:40px;min-height:38px;padding:5px 12px;font-size:18px;background:#172333;border:1px solid #66543a;border-radius:9px;color:#d9b879}
+#sieveFrame{display:block;flex:1;width:100%;min-height:0;border:0;background:#050b14}
+@media(max-height:560px){#sieveOverlay{top:calc(65px + env(safe-area-inset-top));bottom:calc(68px + env(safe-area-inset-bottom))}}
+
+#sieveWorkspace{overflow:auto;min-height:0;flex:1;padding:14px;color:#e7dbb7;text-align:left;font:13px/1.5 system-ui}
+#sieveWorkspace p{margin:0 0 14px}
+#sieveWorkspace a{display:block;min-height:44px;padding:12px;margin:8px 0;background:#172333;border:1px solid #66543a;border-radius:9px;color:#f0d5a0;text-decoration:none;font:600 12px system-ui}
+#sieveWorkspace a:focus-visible{outline:2px solid #d9b879;outline-offset:2px}
+
+/* Native Sieve workspace must sit above the instrument HUD while leaving its reserved bottom margin untouched. */
+body:has(#sieveWorkspace) #sieveOverlay{z-index:30}
+
+/* Hunt: inspectable evidence instrument, not a second chat cockpit. */
+#huntRoot{display:grid;gap:10px;padding-bottom:15px;border-bottom:1px solid #66543a;margin-bottom:15px}
+#huntRoot .huntHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#huntRoot .huntHead strong{margin-right:auto;color:#f0d5a0;font:600 13px Georgia,serif;letter-spacing:.1em}
+#huntRoot button{min-height:40px;padding:9px 11px;font:600 11px system-ui;cursor:pointer}
+#huntRoot button:disabled{opacity:.6}
+#huntRoot .huntStats{display:grid;gap:5px;color:#b9c9ca;font:11px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}
+#huntRoot details{border:1px solid #66543a;border-radius:8px;padding:9px}
+#huntRoot summary{cursor:pointer;font:600 11px system-ui}
+#huntRoot .huntLog{max-height:220px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:10px/1.4 monospace}
+#huntRoot .huntCandidates{display:grid;gap:8px}
+#huntRoot .huntCandidate{display:grid;gap:6px;padding:12px;border:1px solid #66543a;border-radius:9px;background:#172333;color:#e7dbb7;font:12px/1.4 system-ui}
+#huntRoot .huntCandidate a{margin:0;min-height:40px;padding:10px}
+#huntRoot .huntCandidate button{justify-self:start}
