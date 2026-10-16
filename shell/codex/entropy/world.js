@@ -70,7 +70,7 @@ export function createEntropy(){
  // One live physics authority; mesh is a passive observer.
  const gravity=createGravitySystem({components:[uniformGravity({id:'surface',y:-9.8})]});
  world.gravity=gravity;
- const contact=createTerrainContact({terrain,surface:terrainSurface,profile:'dissipative'});
+ const contact=createTerrainContact({terrain,profile:'dissipative'});
  const kinetic=createKineticBody({surface:terrainSurface,gravity,contact});
  let initialImpulseApplied=false,flightImpulseApplied=false;
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
