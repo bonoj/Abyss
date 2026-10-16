@@ -5,6 +5,7 @@ import {createTerrainSurfaceQuery} from '../../arcana/terrain-surface-query.js';
 import {createNodeMaker} from '../../arcana/node-maker.js?v=1';
 import {createWanderer} from '../../arcana/wanderer.js';
 import {createArticulatedTrial} from '../../arcana/locomotion/articulated-trial.js';
+import {runDropTrial} from '../../arcana/locomotion/drop-trial.js';
 import {createMistsReeds} from '../../arcana/populations/mists-reeds.js';
 import {createBBGarden} from '../../arcana/populations/bb-garden.js';
 import {createSecondGarden} from '../../arcana/populations/second-garden.js';
@@ -64,6 +65,10 @@ export function createEntropy(){
  const terrainSurface=createTerrainSurfaceQuery(terrain);
  const botanicalOffset=()=>{const [x,z]=wanderer.inspect().offset;return {x,z}};
  const articulated=createArticulatedTrial(T,{parent:world.content,surface:terrainSurface,actor:()=>wanderer.inspect(),offset:botanicalOffset});
+ // On-demand scripted physics experiment; never changes the live Wanderer.
+ let lastDropTrial=null;
+ world.runLocomotionTrial=(options={})=>(lastDropTrial=runDropTrial({surface:terrainSurface,...options}));
+ globalThis.entropyLocomotionJSON=()=>JSON.stringify(world.runLocomotionTrial(),null,2);
  const cradleCollision={position:abioentropy.group.position,scale:.12,innerRadius:10.07};
  const debris=createBeadDebris(T,{terrain,offset:botanicalOffset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,abioentropy:cradleCollision,wanderer:{inspect:()=>wanderer.inspect(),innerRadius:10.07*.06}});
  // Eye is independent of the established populations and terrain.
@@ -123,6 +128,6 @@ export function createEntropy(){
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'locomotion trial',scenario:'drop-and-settle',execution:'on-demand',lastReport:lastDropTrial},cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
