@@ -776,3 +776,12 @@ Commit `50a56ffc` adds **one deterministic finite external impulse** to the veri
 **Turn 4: N-limb validation before locomotion.** Run the same contact/joint formulation for N=1,2,3,6 with physically plausible attachment/foot geometry. No biped-only righting rule. Report which configurations are feasible and their perturbation envelopes; N=1 is allowed to fail when it cannot generate the required wrench. Only after stable standing is witnessed should contact-seeking foot relocation and gravity-mediated stepping resume.
 
 **Acceptance principle:** stability means remaining within a finite support basin and returning toward a nearby equilibrium, not returning to the exact starting coordinates. No performance intervention while FPS≥55. Preserve the earlier browser witness as the falsifiable baseline.
+
+
+### BK. Turn 1 — audited pitch convention and corrected hip transform (2026-10-16)
+
+Source audit established `kinetic-body.js` uses **clockwise-positive pitch**: body mesh renders `rotation.z=-pitch`; capsule endpoint `(rx,ry)=(half*sin(pitch),half*cos(pitch))`; rigid point velocity `(vx+omega*ry, vy-omega*rx)`; torque `ry*Fx-rx*Fy`. In `contact-limbs.js`, the previous hip transform `(hx*cos-hy*sin,hx*sin+hy*cos)` rotated **counterclockwise** instead, inconsistent with its own hip velocity and torque expressions. At zero pitch the error was invisible, explaining why the symmetric standing witness could pass.
+
+Commit `f9203844` corrects hip transform to `(hx*cos+hy*sin,-hx*sin+hy*cos)`, satisfying `d(rx)/dt=omega*ry` and `d(ry)/dt=-omega*rx`. This is a geometry/kinematics consistency fix only: no stiffness/damping tuning, body stationkeeping, foot movement, or pose servo. The previous perturbation result remains valid evidence **for the old implementation**, not evidence of corrected stability.
+
+**Next browser witness:** verify executing SHA, compare undisturbed standing and the existing +0.08 impulse at t=2. Determine whether sway remains bounded and whether support survives. A new fall would indicate remaining physical instability and should not be concealed. **Remaining audit:** confirm body-terrain impact path and add time-resolved instability diagnostics before introducing joint actuation.
