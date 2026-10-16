@@ -5,7 +5,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
  if(!contact||typeof contact.resolve!=='function')throw Error('contact system required');
  const ground=surface(x,z);
  if(!Number.isFinite(ground))throw Error('initial surface required');
- const state={x,y:ground+radius+height,z,vx:0,vy:0,vz:0,contact:false,time:0,steps:0,impacts:0,maxCorrection:0,pitch:0,omega:0,inertia:.085,torque:0};
+ const state={x,y:ground+.84,z,vx:0,vy:0,vz:0,contact:false,time:0,steps:0,impacts:0,maxCorrection:0,pitch:0,omega:0,inertia:.085,torque:0};
  let lastContact=null,wallContacts=0,activeContact=null;
  let accumulator=0,footAuthoritySteps=0,terrainAuthoritySteps=0,peakPitch=0,firstBodyImpact=null;
  const events=[];
@@ -25,17 +25,18 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   const wasSupported=s.contact;
   const footSupport=!!actuator?.hasFootSupport?.();
   if(footSupport)footAuthoritySteps++;else terrainAuthoritySteps++;
-  const result=contact.resolve(s,{radius,dt:step,acceleration,activeDrive,footSupport});
+  // No standing contact at the center of mass: only planted feet carry stance.
+  const result={supported:false,hit:null};
   // Finite body: sample the two ends of a short pitch-oriented capsule.
   // Contact impulses affect both translation and angular momentum.
   const half=.30,cs=Math.cos(s.pitch),sn=Math.sin(s.pitch);
-  let endpointSupported=false;
+
   for(const sign of [-1,1]){
    const rx=sign*half*sn,ry=sign*half*cs;
    const probe={x:s.x+rx,y:s.y+ry,z:s.z,vx:s.vx+s.omega*ry,vy:s.vy-s.omega*rx,vz:s.vz};
    const bodyHit=contact.resolve(probe,{radius:radius*.7,dt:step,acceleration,activeDrive:false,footSupport:false});
    if(bodyHit.hit&&bodyHit.penetration>0){
-    endpointSupported=endpointSupported||!!bodyHit.supported;
+    s.maxCorrection=Math.max(s.maxCorrection,bodyHit.penetration);
     if(!firstBodyImpact)firstBodyImpact={time:+s.time.toFixed(4),end:sign,penetration:bodyHit.penetration,pitch:s.pitch};
     s.x+=probe.x-(s.x+rx);s.y+=probe.y-(s.y+ry);
     const jx=probe.vx-(s.vx+s.omega*ry),jy=probe.vy-(s.vy-s.omega*rx);
@@ -44,10 +45,10 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
     s.omega+=(ry*jx-rx*jy)/s.inertia/effective;
    }
   }
-  if(result.penetration)s.maxCorrection=Math.max(s.maxCorrection,result.penetration);
-  if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:result.supported});
-  s.contact=result.supported||endpointSupported||footSupport;
-  activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:(endpointSupported?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'body-endpoint'}:(actuator?.hasFootSupport?.()?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'planted-foot'}:null));
+  // Body-end contacts are collisions, never a source of foot stance authority.
+  if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:footSupport});
+  s.contact=footSupport;
+  activeContact=footSupport?{supported:true,normal:{x:0,y:1,z:0},friction:.86,source:'planted-foot'}:null;
   if(result.contactObservation){lastContact=result.contactObservation;if(Math.abs(lastContact.normal.y)<0.5)wallContacts++;}
   if(result.hit&&result.penetration!==undefined&&!wasSupported){
    s.impacts++;events.push({t:+((s.steps+1)*step).toFixed(4),type:'contact',x:+s.x.toFixed(4),restitution:result.hit.restitution,observation:result.contactObservation});
