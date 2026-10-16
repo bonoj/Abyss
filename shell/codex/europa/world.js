@@ -44,6 +44,7 @@ export function createEuropa(){
  world.europaSite=(x=0,z=0)=>({x,z,profile:world.europaProfile(x,z),
   surface:stratigraphy.sample(x,1.15,z),hypothesisOnly:true});
  const extractions=[];
+ let pairedTrial=null;
  world.compareSites=(sites=[{x:-3.1,z:2.2},{x:5,z:-3}])=>sites.map(({x,z})=>{
   const profile=world.europaProfile(x,z);
   const counts={};for(const cell of profile)counts[cell.unit]=(counts[cell.unit]||0)+1;
@@ -86,17 +87,25 @@ export function createEuropa(){
     lensDetected:!!counts['transported-lens'],ledgerBalanced:core.balanced,
     provenanceAccountingMatches:core.provenanceAccountingMatches,inventoryMatchesTerrain:core.inventoryMatchesTerrain};
   });
-  return {schema:'europa-paired-core-trial/v0',synthetic:true,calibrated:false,
+  pairedTrial={schema:'europa-paired-core-trial/v0',synthetic:true,calibrated:false,
    warning:'Parcel subset is a deterministic proxy, not the per-material recovered ledger allocation',
    trials,discriminated:trials[0].lensDetected&&!trials[1].lensDetected,
    balanced:ledger.inspect().balanced};
+  return pairedTrial;
  };
+ world.pairedTrial=()=>pairedTrial;
  const originalInspect=world.inspect.bind(world);
  world.inspect=()=>({name:'Europa',shell:originalInspect(),
   experiment:{schema:'europa-world/v0',status:'authoritative lattice-node extraction, no physical calibration',
    topology:'atlas',terrain:terrain.inspect(),
    materialCalibration:false,sampleCount:extractions.length,excavationEnabled:true,
-   materialAccounting:ledger.inspect(),lastExtraction:extractions.at(-1)||null,
+   materialAccounting:ledger.inspect(),
+   lastExtraction:extractions.length?{count:extractions.at(-1).count,removed:extractions.at(-1).removed,
+    recovered:extractions.at(-1).recovered,dispersed:extractions.at(-1).dispersed,
+    provenance:extractions.at(-1).provenance,
+    provenanceAccountingMatches:extractions.at(-1).provenanceAccountingMatches,
+    inventoryMatchesTerrain:extractions.at(-1).inventoryMatchesTerrain}:null,
+   pairedTrial,
    stratigraphy:{schema:'synthetic-stratigraphy/v0',source:'synthetic hypotheses on terrain elevation',coupledToExcavation:true,
     units:['radiolytic-skin','reworked-ice','inherited-ice','transported-lens'],
     selectedSite:{x:0,z:0},profileAvailable:true},
