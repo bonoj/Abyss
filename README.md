@@ -3,12 +3,13 @@
 **Repository:** https://github.com/bonoj/Abyss  
 **Shell:** https://bonoj.github.io/Abyss/shell/  
 **Shell handoff:** [shell/HANDOFF.md](shell/HANDOFF.md)  
+**Shared write-failure recovery:** [Gate](https://github.com/bonoj/Gate/blob/main/README.md)  
 **Publisher:** [.github/workflows/pages.yml](.github/workflows/pages.yml)  
 **Commits:** https://github.com/bonoj/Abyss/commits/main/
 
 ## Cold boot for Clara / the Conjoiner
 
-1. Read this README and [Shell's handoff](shell/HANDOFF.md). Inspect the actual workflow before making deployment claims.
+1. Read this README and [Shell's handoff](shell/HANDOFF.md). For blocked GitHub writes, read [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and follow its permitted failure-recovery procedure; do not invent a replacement. Inspect the actual workflow before making deployment claims.
 2. **For a new world using the existing runtime:** author it in `shell/codex/<world>/`, using `shell/arcana/` for reusable systems; connect it through `shell/main.js`. Do not clone Athanor for each world.
 3. **For a deliberately independent runtime:** create another top-level `<experiment>/index.html` folder with all its first-party runtime dependencies inside it. No runtime imports across experiment folders.
 4. Commit changes to `main`. Currently **changes under `shell/**` and to the publisher workflow trigger publication automatically**. Other folders do **not** automatically trigger deployment; add a deliberate workflow trigger or use `workflow_dispatch` when supported. Do not imply an ordinary commit to another folder was deployed.
