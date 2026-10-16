@@ -1,0 +1,3 @@
+# Europa synthetic provenance
+
+`stratigraphy.js` provides illustrative units and composition proxies, not measured Europa geology. `terrain.extractNodes` now optionally emits each removed node's coordinates. `world.extractTestCore` records those nodes with provenance tags and a per-unit tally; `world.europaSection` returns a stratigraphic grid plus an occupancy mask sampled from actual terrain. These are programmatic outputs, not a rendered cross-section UI. Stratigraphic layer boundaries are not yet aligned to the terrain elevation. Runtime extraction and exact-source tests remain unverified. Terrain generic material IDs are not chemical species.
