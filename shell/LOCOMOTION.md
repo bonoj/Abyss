@@ -792,3 +792,30 @@ Commit `f9203844` corrects hip transform to `(hx*cos+hy*sin,-hx*sin+hy*cos)`, sa
 Executing build `81ba598a5bf51cafba70bf7079c7c4154083770d`, FPS 83.6320. Deterministic +0.08 horizontal velocity impulse confirmed at t=2.0000 s. Support lost at t=3.0667 s (x=1.7784), **1.0667 s after impulse**, versus 1.3917 s in the old geometry. At t=4.9167 s (590 steps), COM (4.33204,-17.26295,0), velocity (1.38037,-19.44003,0), pitch -2.55241 rad, omega -1.21823 rad/s. Both legs out of reach (18.432 and 18.223 vs max 1.04); force zero; gravity residual (0,-9.8,0). Supported steps 366; unsupported 224. No body impacts or terrain corrections recorded.
 
 **Conclusion:** the clockwise-positive hip-transform correction fixed a real kinematic inconsistency but did not produce dynamic stability. A pair of massless compression-only axial struts at these attachment points does not demonstrate a robust restoring wrench. Preserve the failure; do not tune blindly or introduce body stationkeeping. Next turn: inspect physically attributable joint/contact rotational compliance and separately audit missing body-terrain collisions. Retain the same perturbation for apples-to-apples comparison.
+
+
+### BM. Architectural pivot — connected limbs, not disappearing force struts (2026-10-16)
+
+**User observation:** “Why is his body not anchored to his legs? If he falls over it means his legs go with him. Is this a fundamental correction we need to make?”
+
+**Decision:** **Yes.** Sisyphus must be a mechanically connected creature. The current `contact-limbs.js` samples a hip-to-fixed-terrain-anchor axial spring, and when `length > maxLength` its reaction becomes zero and its inspector calls the limb `out-of-reach` / `connected:false`. This is a *force-field fixture*, not an articulated leg: it models neither persistent hip attachment nor independently moving feet. The two browser-witnessed falls (BI and BL) therefore must **not** be treated as conclusive tests of the stability of a physically articulated walker. Retain them as honest failures of the retired fixture.
+
+**Invariants for replacement:**
+- Every leg remains attached to its parent body through a persistent mechanical joint/constraint. Exceeding reach may produce a constraint force, joint-limit response, or breakage only if explicit breakage physics is designed; it never silently deletes the leg.
+- Feet are physical endpoints/bodies, not immutable terrain coordinates. Ground contact is unilateral and contingent: planted, rolling/pivoting, sliding, lifting, or airborne. A fall carries the limbs with the torso unless a physically valid planted contact temporarily constrains them.
+- One coherent mass/force/torque and fixed-step integration authority; preserve momentum as appropriate and account for joint forces as equal/opposite interactions. No body position/pitch lock, world-space gait motor, automatic righting, foot teleport, or disguised stationkeeping.
+- Use a data-driven N-limb definition; no biped-specific recovery rules. Respect finite lengths, joint ranges, forces, and ground friction. Expose measured states rather than labeling inferred contact as real.
+- Distinguish **mechanical connectivity**, **foot-ground contact**, and **active support** in the inspector. A limb can remain connected while airborne.
+- Do not introduce local rotational compliance as a patch for missing connectivity. First make a connected mechanism, then investigate its stability and the size of its recoverable basin.
+
+#### Execution plan for the next turns
+
+**Turn 1 — architecture and fixture replacement.** Inspect `kinetic-body.js`, `terrain-contact.js`, `contact-limbs.js`, and Entropy composition. Specify the smallest physically coherent planar connected-limb model, including hip constraints, finite segment lengths, limb endpoint masses or explicitly derived massless constraints, joint force application, and foot contact lifecycle. Retain the current standing fixture as archived evidence but replace it as the active locomotion authority. Prefer reuse of existing physics components; avoid a parallel hidden integrator. Document assumptions, solver tolerances, and what remains simplified.
+
+**Turn 2 — connectivity and fall test.** Instantiate N=2 with visible hip–limb–foot geometry driven by authoritative state. Test unforced gravity, deliberately unsupported fall, and a finite lateral impulse. Confirm feet move with the body when airborne; when touching ground, contacts generate legitimate reaction/friction and may slide or release. Verify no limb silently disconnects at maximum extension. Instrument joint separation error, maximum constraint impulse, foot contact/slip, torso collision, and momentum/energy diagnostics.
+
+**Turn 3 — standing and finite perturbations.** Establish standing equilibrium with real connected legs and physically attributable joint mechanics. Permit natural sway; measure whether disturbances ±0.02, ±0.08, ±0.2 are absorbed, produce steps, or topple. Do not require exact return to original COM or pitch. Investigate support geometry, passive compliance, and any explicit bounded muscle actuation *after* connection is correct. No stationkeeping.
+
+**Turn 4 — N-limb proof and locomotion readiness.** Exercise the same joint/contact architecture with 1, 2, 3, and 6 limbs and plausible attachments. Compare feasible support regions and failure modes without species-specific hacks. Only then introduce deliberate foot placement and gravity-mediated stepping. Maintain the browser executing-SHA witness discipline and avoid unnecessary optimization above 55 FPS.
+
+**Acceptance gate:** a topple is allowed; **a detached torso with feet frozen at the old ground anchors is not**. A connected leg may change posture, slip, pivot, and lose ground contact, but must not cease to be part of Sisyphus.
