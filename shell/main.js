@@ -10,3 +10,8 @@ world.attachView(globalThis.Athanor.view());
 
 // Explicit, opt-in diagnostic operation; no automatic excavation on boot.
 if(europa)globalThis.europaExtractJSON=(options,recoveryFraction)=>world.extractTestCore(options,recoveryFraction);
+
+if(europa){
+ globalThis.europaSectionJSON=options=>world.europaSection(options);
+ globalThis.europaProfileJSON=(x,z)=>world.europaProfile(x,z);
+}
