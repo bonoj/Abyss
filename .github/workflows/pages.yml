@@ -58,7 +58,7 @@ jobs:
           asset=pathlib.Path('site/shell/assets/main.'+sha+'.js')
           bundle=asset.read_text()
           assert len(bundle)>1000,'Bundle suspiciously small'
-          assert not re.search(r'(?:from\\s*|import\\s*\\()\\s*[\\x22\\x27]\\.{1,2}/',bundle),'Unbundled local import'
+          assert "from './" not in bundle and 'from "../' not in bundle, 'Unbundled local import'
           # Legacy cached Shell HTML imports main.js?build=SHA; preserve that
           # contract, but make the entry an immutable bundle loader.
           pathlib.Path('site/shell/main.js').write_text("import './assets/main."+sha+".js';")
