@@ -289,3 +289,8 @@ Build `eba77bd1`: first stance / release / swing / replant loop in `planted-foot
 ### AB. Browser acceptance: first repeated gait (build `00a12923`)
 
 User inspector at 9.3333 s / 1120 steps: body x=−6.86501 from x=1.3 (8.16501 units), vx=−1.26667; 8 plants, 7 releases, 7 completed swings, zero failed plants, poweredSteps=596, reach=0.9, current extension=0.0921083, maximum pre-correction violation=0, correctionTotal=0, radialImpulseTotal=0. No wall contacts. **Repeated replant and sustained travel accepted.** FPS 59.93048; user explicitly says ignore FPS unless below 55. Outstanding: 43 impacts and 141 unsupported steps with tiny rebound/support jitter; swing remains prescribed and foot marker jumps to target. Preserve borehole and original Wanderer. Next: quiet resting-contact micro-bounces and make swing foot visibly interpolate without changing physical body authority.
+
+
+### AC. Continuous swing witness and low-speed settling (pending browser verification)
+
+`planted-foot.js` now retains swing takeoff and returns a rendered foot position interpolated toward the terrain-query target, with a 0.25-unit sinusoidal visual lift. The planted anchor itself stays fixed; the visual interpolation does not feed body physics. `terrain-contact.js` now classifies downward normal speeds up to 1.5 times the one-step gravity load as resting contact, preventing tiny 0.0196-unit/s rebounds observed on flat ground. This is a deliberate low-speed inelastic threshold, not a new force or a velocity command; real higher-speed impacts retain restitution. Check repeated plants, contact events, foot display, borehole impacts, and 55 FPS minimum in the executing browser build. No live acceptance yet.
