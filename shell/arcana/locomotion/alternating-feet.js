@@ -3,17 +3,24 @@ import {createPlantedFoot} from './planted-foot.js';
 // A handoff happens on release, not on an elapsed gait clock.
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
+ const groundContact={supported:true,normal:{x:0,y:1,z:0},friction:.86,source:'planted-foot'};
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
  let connectedSteps=0,disconnectedSteps=0,tensileSteps=0,peakTension=0;
  let strutForceTotal=0,strutPeakForce=0,strutLoadedSteps=0,lastStrut=null;
  let geometrySteps=0,overextendedSteps=0,maxHorizontal=0,maxVerticalCorrection=0,largeCorrectionCount=0,lastGeometry=null;
  const geometryEvents=[];
  function sample(body,context){
+  // Initial stance comes from the terrain beneath the feet, not a torso collision.
+  if(!feet.some(f=>f.getAnchor())&&feet.every(f=>f.inspect().plantCount===0)){
+   const y=surface?.(body.x,body.z);
+   if(Number.isFinite(y))feet.forEach(f=>f.sample(body,{...context,contact:groundContact,holdStance:true}));
+  }
+  const stanceContact=feet.some(f=>!!f.getAnchor())?groundContact:null;
   const current=feet[active];
   const receiver=feet[1-active];
-  if(!receiver.getAnchor()&&receiver.inspect().plantCount===0&&context.contact?.supported)receiver.sample(body,{...context,holdStance:true});
+  if(!receiver.getAnchor()&&receiver.inspect().plantCount===0&&stanceContact?.supported)receiver.sample(body,{...context,contact:stanceContact,holdStance:true});
   const receiverReady=!!receiver.getAnchor();
-  const force=current.sample(body,{...context,holdStance:!receiverReady});
+  const force=current.sample(body,{...context,contact:stanceContact,holdStance:!receiverReady});
   if(!receiverReady&&current.getAnchor())heldSteps++;
   if(receiverReady&&current.getAnchor()&&current.inspect().extension>=current.inspect().strokeEnd)current.release(body);
   if(current.inspect().phase==='swing'){
