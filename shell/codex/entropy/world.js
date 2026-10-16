@@ -76,7 +76,7 @@ export function createEntropy(){
  const drive=createAlternatingFeet({surface:terrainSurface});
  const kinetic=createKineticBody({surface:terrainSurface,gravity,contact,actuator:drive});
  
- const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
+ const trialMesh=new T.Mesh(new T.CapsuleGeometry(.126,.6,6,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
  trialMesh.name='Kinetic body';world.content.add(trialMesh);
  const footMesh=new T.Mesh(new T.SphereGeometry(.105,12,8),new T.MeshStandardMaterial({color:0x42d9c4,roughness:.5}));
  footMesh.name='Left foot';footMesh.visible=false;world.content.add(footMesh);
@@ -87,6 +87,7 @@ export function createEntropy(){
   kinetic.update(dt);
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
+  trialMesh.rotation.z=-p.pitch;
   const foot=drive.getFeet()[0];footMesh.visible=!!foot;
   if(foot)footMesh.position.set(foot.x-o.x,foot.y,foot.z-o.z);
   const other=drive.getFeet()[1];otherFootMesh.visible=!!other;
