@@ -4,7 +4,7 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface,offsetX=0}={}
  if(!(mass>0&&force>0&&reach>0))throw Error('positive mass, force and reach required');
  let anchor=null,phase='awaiting support',forceX=0,plantCount=0,poweredSteps=0;
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
- let swingTarget=null,swingFrom=null,swingProgress=0,swingCount=0,releaseCount=0,failedPlants=0;
+ let swingTarget=null,swingFrom=null,swingProgress=0,swingCount=0,releaseCount=0,failedPlants=0,unreachablePlants=0,reachReleases=0;
  const strokeEnd=reach*.42,lead=reach*.55,swingRate=2.2;
  function sample(body,{dt,acceleration,contact,holdStance=false}){
   forceX=0;
@@ -24,15 +24,15 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface,offsetX=0}={}
   phase='powered stance';
   return {x:forceX/mass,y:0,z:0};
  }
- function constrain(body,{dt,supported,skipTether=false}){
+ function constrain(body,{dt,supported,skipTether=false,canPlant=null}){
   if(phase==='swing'){
    swingProgress=Math.min(1,swingProgress+swingRate*dt);
    if(swingProgress>=1&&swingTarget&&supported){
     const y=surface?.(swingTarget.x,swingTarget.z);
-    if(Number.isFinite(y)){
+    if(Number.isFinite(y)&&(!canPlant||canPlant({x:swingTarget.x,y,z:swingTarget.z}))){
      anchor={x:swingTarget.x,y,z:swingTarget.z};
      phase='stance';plantCount++;swingCount++;swingTarget=null;swingFrom=null;
-    }else{failedPlants++;swingProgress=0;}
+    }else{if(Number.isFinite(y))unreachablePlants++;else failedPlants++;swingProgress=0;}
    }
    return;
   }
@@ -50,12 +50,12 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface,offsetX=0}={}
   if(outward>0){body.vx-=nx*outward;body.vz-=nz*outward;radialImpulseTotal+=mass*outward;}
   extension=reach;phase='taut';
  }
- function release(body){
+ function release(body,reason='stroke'){
   if(!anchor)return false;
-  swingFrom=anchor;swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
-  anchor=null;phase='swing';releaseCount++;return true;
+  swingFrom=anchor;swingTarget={x:body.x-lead+offsetX,z:body.z};swingProgress=0;
+  anchor=null;phase='swing';releaseCount++;if(reason==='reach')reachReleases++;return true;
  }
  function retire(){anchor=null;swingTarget=null;swingFrom=null;phase='retired';forceX=0;}
- function inspect(){return {name:'planted foot',mode:'stance / unloaded swing / terrain replant',phase,anchor,swingTarget,swingProgress,strokeEnd,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,swingCount,releaseCount,failedPlants,poweredSteps,unsupportedSteps,forceX}}
+ function inspect(){return {name:'planted foot',mode:'stance / unloaded swing / terrain replant',phase,anchor,swingTarget,swingProgress,strokeEnd,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,swingCount,releaseCount,failedPlants,unreachablePlants,reachReleases,poweredSteps,unsupportedSteps,forceX}}
  return {sample,constrain,release,retire,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||(swingFrom&&swingTarget?{x:swingFrom.x+(swingTarget.x-swingFrom.x)*swingProgress,y:swingFrom.y+Math.sin(Math.PI*swingProgress)*.25,z:swingFrom.z+(swingTarget.z-swingFrom.z)*swingProgress}:null)};
 }
