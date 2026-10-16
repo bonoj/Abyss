@@ -31,7 +31,7 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
     const y=surface?.(swingTarget.x,swingTarget.z);
     if(Number.isFinite(y)){
      anchor={x:swingTarget.x,y,z:swingTarget.z};
-     phase='stance';plantCount++;swingCount++;swingTarget=null;
+     phase='stance';plantCount++;swingCount++;swingTarget=null;swingFrom=null;
     }else{failedPlants++;swingProgress=0;}
    }
    return;
