@@ -1,6 +1,6 @@
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 // Signed field, tetrahedral chunk extraction and aperture shader migrated from Wanderer Separated.
-export function createTerrain({topology='reference'}={}){
+export function createTerrain({topology='reference',testBorehole=null}={}){
  const NX=85,NY=21,NZ=85,MINY=-3.6,MAXY=3.6,WORLD_HALF=25.2,CHUNK=10,CX=Math.ceil((NX-1)/CHUNK),CZ=Math.ceil((NZ-1)/CHUNK);
  const depositedMaterial=new Map();
  const MATERIALS=[
@@ -58,6 +58,7 @@ export function createTerrain({topology='reference'}={}){
  terrainBuildCount++;
  const start=performance.now();
  operations=[];
+ if(testBorehole)operations.push({kind:'through-hole',x:testBorehole.x,z:testBorehole.z,r:testBorehole.radius});
  // Vertical bores pierce the complete slab; raised and lowered regions act
  // independently on upper and lower surfaces.
  // Temporary visible-topology fixture for the equatorial edge study.
@@ -143,7 +144,7 @@ export function createTerrain({topology='reference'}={}){
  function sphereContact(center,radius){
   collisionPoint.set(center.x,center.y,center.z);
   const inside=fieldSample(center.x,center.y,center.z)>0;
-  let best=Infinity,bx=0,by=0,bz=0;
+  let best=inside?Infinity:radius*radius,bx=0,by=0,bz=0,found=false;
   collisionStats.queries++;
   for(const chunk of terrainChunks){
    const g=chunk.geometry,bb=g.boundingBox;if(!bb)continue;
@@ -158,10 +159,10 @@ export function createTerrain({topology='reference'}={}){
     collisionStats.triangleTests++;
     collisionTriangle.set(collisionA,collisionB,collisionC).closestPointToPoint(collisionPoint,collisionClosest);
     const d=collisionClosest.distanceToSquared(collisionPoint);
-    if(d<best){best=d;bx=collisionClosest.x;by=collisionClosest.y;bz=collisionClosest.z}
+    if(d<best){best=d;bx=collisionClosest.x;by=collisionClosest.y;bz=collisionClosest.z;found=true}
    }
   }
-  if(!Number.isFinite(best))return null;
+  if(!found)return null;
   const distance=Math.sqrt(best);
   if(!inside&&distance>=radius)return null;
   let nx=center.x-bx,ny=center.y-by,nz=center.z-bz;
@@ -276,5 +277,5 @@ export function createTerrain({topology='reference'}={}){
   return {magnitude:e,radius,depth,rim,changed,dirtyChunks:terrainPerf.lastDirtyChunks};
  }
  regenerate();
- return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,sphereContact,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
+ return {group:solid,setAperture:r=>{if(activeAperture!==r){activeAperture=r;if(apertureUniform)apertureUniform.value=r}},getAperture:()=>activeAperture,setOffset:(x,z)=>{wanderX=x;wanderZ=z;solid.position.set(-x,0,-z);sharedApertureOffset.set(x,0,z)},sample:fieldSample,sphereContact,intersectsSphere,sphereClearance,impact,interact,firstVisibleRayHit,materialAt,atlas,materials:MATERIALS,contactProperties,deposits:depositedMaterial,inspect:()=>({dimensions:[NX,NY,NZ],atlasVersion:atlas.version,materialCount:MATERIALS.length,depositCount:depositedMaterial.size,contactProperties,top:1.15,bottom:-1.15,triangles,solidCount,voidCount,buildMs,terrainPerf:{...terrainPerf,lastChangedChunks:terrainPerf.lastChangedChunks.length},topology,testBorehole,operations:operations.map(o=>({...o})),apertureRadius:activeAperture,collisionStats:{...collisionStats}})};
 }
