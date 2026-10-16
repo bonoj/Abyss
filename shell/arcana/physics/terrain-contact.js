@@ -2,7 +2,7 @@
 // Contact normal is oriented from solid into free space.
 export function createTerrainContact({terrain,profile='dissipative'}={}){
  if(typeof terrain?.sphereContact!=='function'||!terrain.contactProperties)throw Error('volumetric terrain contact required');
- function resolve(body,{radius,dt,acceleration}){
+ function resolve(body,{radius,dt,acceleration,activeDrive=false}){
   const hit=terrain.sphereContact(body,radius);
   if(!hit)return {supported:false,hit:null};
   const props=terrain.contactProperties[profile];
@@ -24,7 +24,7 @@ export function createTerrainContact({terrain,profile='dissipative'}={}){
   const normalSpeed=body.vx*n.x+body.vy*n.y+body.vz*n.z;
   const tx=body.vx-n.x*normalSpeed,ty=body.vy-n.y*normalSpeed,tz=body.vz-n.z*normalSpeed;
   const tangentSpeed=Math.hypot(tx,ty,tz);
-  const loss=Math.min(tangentSpeed,props.friction*load*dt);
+  const loss=activeDrive?0:Math.min(tangentSpeed,props.friction*load*dt);
   if(tangentSpeed>0){const k=loss/tangentSpeed;body.vx-=tx*k;body.vy-=ty*k;body.vz-=tz*k}
   return {supported:resting&&n.y>0.5,hit:{...hit,...props,profile},penetration:hit.penetration,bounced,contactObservation:{point:hit.point,normal:{...n},materialId:hit.materialId,inside:hit.inside,penetration:hit.penetration,incomingNormalSpeed:vn,reboundNormalSpeed,normalLoad:load,supported:resting&&n.y>0.5}};
  }
