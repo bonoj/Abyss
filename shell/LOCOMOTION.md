@@ -62,7 +62,7 @@ A visible body, two IK-driven legs, terrain-sampled foot targets, alternating vi
 
 ## Roadmap and acceptance tests
 
-### 1. Real foot planting — NEXT
+### 1. Real foot planting — IMPLEMENTED IN SOURCE, NEEDS RUNTIME VALIDATION
 Implement explicit **stance** and **swing** states. Planted feet remain fixed in terrain/world coordinates while the body advances; swinging feet select new landings and follow controlled trajectories. IK only solves targets; it does not schedule steps.
 
 **Proof:** start, stop, and turn without visible planted-foot skating. Observe contact state, foot drift, target/reach errors, phase duration, and frame cost. Do not yet change body movement authority.
@@ -110,6 +110,11 @@ For each iteration record: attempt, commits, observed verification, provisional/
 
 **A commit is not a deployed build. A rendered pose is not physical locomotion. A plausible gait is not planted contact.**
 
-**Current frontier:** Stage 1 — real foot planting.  
+**Current frontier:** Stage 1 — validate planted contact and solver reach in actual browser.  
 **Current implementation:** two-bone IK plus articulated visual follower.  
-**Next proof:** two planted feet, a moving body, no skating.
+**Next proof:** visually confirm stance stability, foot reach, and landing behavior in the executing browser.
+
+### C. Stance/swing controller — committed, browser unverified
+Commits: `116cd72d` (new `arcana/locomotion/foot-contacts.js`), `760adb35` (articulated trial integration).
+
+Persistent terrain-coordinate foot targets, explicit stance/swing states, one foot swinging at a time, smooth swing interpolation and lift, contact and step diagnostics. Existing Wanderer retains navigation and movement authority. **Caution:** planted *targets* are fixed, but rendered feet may deviate when IK cannot reach them; no runtime proof of zero skating or gait quality yet. Next inspect reach error and planted-foot position in a real browser, then correct reach/step scheduling as needed.
