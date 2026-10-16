@@ -14,4 +14,16 @@ toggle.addEventListener('click',event=>{event.stopPropagation();setOpen(panel.hi
 close.addEventListener('click',event=>{event.stopPropagation();setOpen(false);toggle.focus();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden)setOpen(false);});
 })();
-</script><script type="module" src="./main.js"></script></body></html>
+</script><script type="module">
+const alarm=document.querySelector('#containmentAlarm');
+try{
+ const response=await fetch('../build.json',{cache:'no-store'});
+ if(!response.ok)throw Error('Build metadata HTTP '+response.status);
+ const {sha}=await response.json();
+ if(!/^[a-f0-9]{40}$/.test(sha))throw Error('Invalid build SHA');
+ await import('./main.js?build='+sha);
+}catch(error){
+ console.error('Shell boot failed',error);
+ if(alarm){alarm.textContent='SHELL FAILED TO WAKE: '+String(error);alarm.style.display='block'}
+}
+</script></body></html>
