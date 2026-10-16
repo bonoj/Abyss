@@ -50,7 +50,8 @@ export function createEntropy(){
  abioentropy.group.add(abioentropy.content);
  world.content.add(abioentropy.group);
  world.abioentropy=abioentropy;
- const terrain=createTerrain({topology:'atlas'});
+ const boreholeTrial={x:3,z:0,radius:1.1};
+ const terrain=createTerrain({topology:'atlas',testBorehole:boreholeTrial});
  world.content.add(terrain.group);
  world.observationTargets=()=>({terrain:terrain.group});
  const equatorial=createEquatorialTreatment({terrain,parent:world.content});
@@ -72,18 +73,13 @@ export function createEntropy(){
  world.gravity=gravity;
  const contact=createTerrainContact({terrain,profile:'dissipative'});
  const kinetic=createKineticBody({surface:terrainSurface,gravity,contact});
- let initialImpulseApplied=false,flightImpulseApplied=false;
+ let initialImpulseApplied=false;
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
  trialMesh.name='Kinetic body';world.content.add(trialMesh);
  world.impulseKineticBody=(x=2.2,y=0,z=0)=>kinetic.impulse(x,y,z);
  function updateKinetic(dt){
   kinetic.update(dt);
-  if(!initialImpulseApplied&&kinetic.state.contact){kinetic.impulse(2.2,0,0);initialImpulseApplied=true}
-  // After the initial frictional stop, apply one upward impulse to test genuine
-  // support loss and ballistic landing through the same physical authority.
-  if(initialImpulseApplied&&!flightImpulseApplied&&kinetic.state.contact&&kinetic.state.time>1.2&&Math.hypot(kinetic.state.vx,kinetic.state.vz)<1e-6){
-   kinetic.impulse(0,3,0);flightImpulseApplied=true;
-  }
+  if(!initialImpulseApplied&&kinetic.state.contact){kinetic.impulse(6,0,0);initialImpulseApplied=true}
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
  }
@@ -146,6 +142,6 @@ export function createEntropy(){
  const inspectShell=world.inspect.bind(world);
  const materialSurvey=createMaterialSurvey({populations:[],debris});
  world.materialSurvey=materialSurvey;
- world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),gravity.inspect(),contact.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
+ world.inspect=()=>({name:'Entropy',shell:inspectShell(),systems:[{name:'abioentropy',stationkeeping:{name:cradle.name,center:cradle.center,position:abioentropy.group.position.toArray()},scale:0.12,...abioentropy.inspect()},{name:'eye',enabled:false,instantiated:false,error:null},{name:'Betwixt observer swarm',enabled:false,instantiated:false},{name:'terrain',...terrain.inspect()},{name:'wanderer',...wanderer.inspect()},articulated.inspect(),{name:'borehole trial',borehole:boreholeTrial,launch:'single horizontal +6 impulse after first support',goal:'rim / wall / underworld; not yet verified'},gravity.inspect(),contact.inspect(),kinetic.inspect(),cinderfall.inspect(),debris.inspect()],material:materialSurvey(),meteorImpact:impactDispatcher.inspect(),edgeGeometry:equatorial.geometry,edgeTreatment:equatorial.inspect(),nodes:nodeMaker.inspect(),tapOwnership:navigation.inspect()});
  return world;
 }
