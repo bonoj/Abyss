@@ -1,6 +1,6 @@
 // A commanded contact actuator, not a motion authority. Uses the existing
 // supported contact and terrain-owned friction to bound horizontal force.
-export function createContactDrive({mass=1,force=4,accelerateUntil=2.5,coastUntil=3.5}={}){
+export function createContactDrive({mass=1,force=4,accelerateUntil=2.5,coastUntil=2.75}={}){
  if(!(mass>0&&force>0))throw Error('positive actuator mass and force required');
  const state={phase:'waiting',appliedSteps:0,peakSpeed:0,forceX:0};
  function sample(body,{dt,acceleration,contact}){
