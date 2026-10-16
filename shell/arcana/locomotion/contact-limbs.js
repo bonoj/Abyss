@@ -7,7 +7,8 @@ export function createContactLimbs({surface,limbs=[
  if(typeof surface!=='function')throw Error('terrain surface required');
  const nodes=limbs.map((def,i)=>({...def,id:def.id??String(i),anchor:null}));
  let last=[],wrench={force:[0,0,0],torque:0},steps=0,supportedSteps=0,unsupportedSteps=0;
- function hip(body,limb){const c=Math.cos(body.pitch||0),s=Math.sin(body.pitch||0);const rx=limb.hipX*c-limb.hipY*s,ry=limb.hipX*s+limb.hipY*c;return {x:body.x+rx,y:body.y+ry,z:body.z,rx,ry};}
+ // Clockwise-positive pitch: drx/dt=omega*ry, dry/dt=-omega*rx.
+ function hip(body,limb){const c=Math.cos(body.pitch||0),s=Math.sin(body.pitch||0);const rx=limb.hipX*c+limb.hipY*s,ry=-limb.hipX*s+limb.hipY*c;return {x:body.x+rx,y:body.y+ry,z:body.z,rx,ry};}
  function sample(body){
   const total={x:0,y:0,z:0,torque:0};
   last=nodes.map(limb=>{
