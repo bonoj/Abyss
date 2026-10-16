@@ -8,16 +8,18 @@ export function createStratigraphy({seed=741,surfaceAt=null}={}){
   const depth=Math.max(0,top-y);
   const boundary1=.28+.07*Math.sin(x*.45+z*.24);
   const boundary2=.83+.12*Math.cos(x*.23-z*.37);
-  const unit=depth<boundary1?'radiolytic-skin':depth<boundary2?'reworked-ice':'inherited-ice';
-  const fracture=Math.abs(Math.sin(x*.57+z*.71))>.94;
-  const exchange=unit==='inherited-ice'?.48:unit==='reworked-ice'?.22:.05;
+  const fault=Math.abs(x-(1.8+0.34*z+0.25*Math.sin(z*.8)));
+  const fracture=fault<.38;
+  const lens=Math.pow((x+3.1)/2.4,2)+Math.pow((z-2.2)/3.4,2)+Math.pow((depth-.75)/.34,2)<1;
+  const unit=lens?'transported-lens':depth<boundary1?'radiolytic-skin':depth<boundary2?'reworked-ice':'inherited-ice';
+  const exchange=unit==='transported-lens'?.67:unit==='inherited-ice'?.48:unit==='reworked-ice'?.22:.05;
   const alteration=Math.exp(-depth/.24);
   const exogenic=unit==='radiolytic-skin'?.26:.035;
-  const composition={waterIce:1,soluteProxy:Math.min(.25,.015+.09*exchange+.025*exogenic)};
+  const composition={waterIce:1,soluteProxy:Math.min(.25,.015+.09*exchange+.025*exogenic+(fracture?.018:0))};
   composition.waterIce=1-composition.soluteProxy;
   return {unit,depth:+depth.toFixed(4),composition,
    provenance:{hypothesis:'synthetic-stratigraphy/v0',endogenicProxy:exchange,exogenicProxy:exogenic,
-    alterationIndex:+alteration.toFixed(4),fracture},
+    alterationIndex:+alteration.toFixed(4),fracture,transportedLens:lens},
    uncertainty:'unconstrained: illustrative synthetic scenario'};
  };
  const crossSection=({x=0,zStart=-8,zEnd=8,yTop=1.8,yBottom=-1.5,columns=41,rows=24}={})=>{
