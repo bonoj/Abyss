@@ -4,6 +4,9 @@ import {createPlantedFoot} from './planted-foot.js';
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface,offsetX:-.18}),createPlantedFoot({surface,offsetX:.18})];
  const hips=[-.12,.12]; // body-local x offsets; shared body-local y=-.24
+ const maxLength=1.04;
+ function hipAt(body,i){const a=body.pitch||0,c=Math.cos(a),s=Math.sin(a),hx=hips[i],hy=-.24;return {x:body.x+hx*c-hy*s,y:body.y+hx*s+hy*c,z:body.z};}
+ function reachable(body,i,anchor){const h=hipAt(body,i);return Math.hypot(h.x-anchor.x,h.y-anchor.y,h.z-anchor.z)<=maxLength;}
  const groundContact={supported:true,normal:{x:0,y:1,z:0},friction:.86,source:'planted-foot'};
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
  let connectedSteps=0,disconnectedSteps=0,tensileSteps=0,peakTension=0;
@@ -20,7 +23,7 @@ export function createAlternatingFeet({surface}={}){
   const current=feet[active];
   const receiver=feet[1-active];
   if(!receiver.getAnchor()&&receiver.inspect().plantCount===0&&stanceContact?.supported)receiver.sample(body,{...context,contact:stanceContact,holdStance:true});
-  const receiverReady=!!receiver.getAnchor();
+  const receiverReady=!!receiver.getAnchor()&&reachable(body,1-active,receiver.getAnchor());
   const force=current.sample(body,{...context,contact:stanceContact,holdStance:!receiverReady});
   if(!receiverReady&&current.getAnchor())heldSteps++;
   if(receiverReady&&current.getAnchor()&&current.inspect().extension>=current.inspect().strokeEnd)current.release(body);
@@ -31,7 +34,7 @@ export function createAlternatingFeet({surface}={}){
     if(!dualSwing){unsupportedHandoffs++;dualSwing=true;}
    }else{
     // The previous stance becomes unloaded; only one tether constrains body.
-    if(feet[next].inspect().anchor)groundedHandoffs++;
+    if(feet[next].inspect().anchor&&reachable(body,next,feet[next].getAnchor()))groundedHandoffs++;
     else unplantedHandoffs++;
     active=next;handoffs++;dualSwing=false;
    }
@@ -44,7 +47,8 @@ export function createAlternatingFeet({surface}={}){
   lastLegs=[];
   const pitch=body.pitch||0,omega=body.omega||0,cs=Math.cos(pitch),sn=Math.sin(pitch);
   for(let i=0;i<2;i++){
-   const anchor=feet[i].getAnchor(),hx=hips[i],hy=-.24;
+   let anchor=feet[i].getAnchor(),hx=hips[i],hy=-.24;
+   if(anchor&&!reachable(body,i,anchor)){feet[i].release(body,'reach');anchor=null;}
    const rx=hx*cs-hy*sn,ry=hx*sn+hy*cs;
    const hip={x:body.x+rx,y:body.y+ry,z:body.z};
    const leg={index:i,anchor:anchor?{...anchor}:null,hip:[hip.x,hip.y,hip.z],connected:false,force:[0,0,0],torque:0};
@@ -111,7 +115,7 @@ export function createAlternatingFeet({surface}={}){
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
-   foot.constrain(body,{...context,supported:context.supported||feet.some(f=>!!f.getAnchor()),skipTether:true});
+   foot.constrain(body,{...context,supported:true,skipTether:true,canPlant:anchor=>reachable(body,i,anchor)});
   });
  }
  function inspect(){return {name:'alternating feet',mode:'two independent finite-force struts; single stance motor',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,connectedSupportSteps,noConnectedSupportSteps,legs:lastLegs,wrench:lastWrench,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,connectedSteps,disconnectedSteps,tensileSteps,peakTension,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
