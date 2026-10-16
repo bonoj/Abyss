@@ -1,7 +1,5 @@
 name: Publish Abyss
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -33,7 +31,9 @@ jobs:
           root = pathlib.Path('.')
           site = pathlib.Path('site')
           shutil.copytree(root, site, ignore=shutil.ignore_patterns('.git', '.github', 'site', '__pycache__', '.DS_Store'))
-          assert (site/'index.html').is_file(), 'Abyss requires root index.html'
+          pages = sorted(p for p in site.rglob('index.html') if p.parent != site)
+          assert pages, 'Add at least one experiment folder with index.html before publishing'
+          print('EXPERIMENT PAGES', [str(p.parent) for p in pages])
           (site/'build.json').write_text(json.dumps({'sha': sha}, separators=(',', ':'))+'\n')
           # Version relative static HTML dependencies without modifying source.
           for page in site.rglob('*.html'):
@@ -57,6 +57,9 @@ jobs:
                   return q+path+'?v='+sha+q
               source = re.sub(r'(["\x27])(\.{1,2}/[^"\x27\n]+?\.(?:js|mjs)(?:\?[^"\x27\n]*)?)\1', stamp_import, source)
               module.write_text(source)
+          for page in pages:
+              (page.parent/'build.json').write_text(json.dumps({'sha': sha, 'path': str(page.parent.relative_to(site))}, separators=(',', ':'))+'\n')
+          (site/'pages.json').write_text(json.dumps({'sha': sha, 'pages': [str(p.parent.relative_to(site)) for p in pages]}, separators=(',', ':'))+'\n')
           print('ASSEMBLED ABYSS', sha)
           PY
       - name: Syntax check
@@ -85,7 +88,17 @@ jobs:
                   with urllib.request.urlopen(base+'?verify='+sha+'&attempt='+str(attempt),timeout=15) as response:
                       html=response.read().decode()
                   assert '<html' in html.lower() and '</html>' in html.lower()
-                  print('VERIFIED PUBLIC ABYSS',sha,base)
+                  with urllib.request.urlopen(base+'pages.json?verify='+sha+'&attempt='+str(attempt),timeout=15) as response:
+                      manifest=json.load(response)
+                  assert manifest['sha']==sha
+                  for folder in manifest['pages']:
+                      with urllib.request.urlopen(base+folder+'/build.json?verify='+sha+'&attempt='+str(attempt),timeout=15) as response:
+                          child=json.load(response)
+                      assert child['sha']==sha and child['path']==folder
+                      with urllib.request.urlopen(base+folder+'/?verify='+sha+'&attempt='+str(attempt),timeout=15) as response:
+                          page_html=response.read().decode().lower()
+                      assert '<html' in page_html and '</html>' in page_html
+                  print('VERIFIED PUBLIC ABYSS',sha,base,manifest['pages'])
                   break
               except Exception as exc:
                   print('NOT YET VERIFIED',attempt+1,repr(exc))
