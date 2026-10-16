@@ -24,7 +24,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   if(result.penetration)s.maxCorrection=Math.max(s.maxCorrection,result.penetration);
   if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:result.supported});
   s.contact=result.supported||footSupport;
-  activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:null;
+  activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:(actuator?.hasFootSupport?.()?{supported:true,normal:{x:0,y:1,z:0},friction:0.86,source:'planted-foot'}:null);
   if(result.contactObservation){lastContact=result.contactObservation;if(Math.abs(lastContact.normal.y)<0.5)wallContacts++;}
   if(result.hit&&result.penetration!==undefined&&!wasSupported){
    s.impacts++;events.push({t:+((s.steps+1)*step).toFixed(4),type:'contact',x:+s.x.toFixed(4),restitution:result.hit.restitution,observation:result.contactObservation});
