@@ -15,6 +15,7 @@ if(europa){
  globalThis.europaSectionJSON=options=>world.europaSection(options);
  globalThis.europaMapJSON=options=>world.europaMap(options);
  globalThis.europaProfileJSON=(x,z)=>world.europaProfile(x,z);
+ globalThis.europaSiteJSON=(x,z)=>world.europaSite(x,z);
 }
 
 if(europa){
@@ -29,21 +30,25 @@ if(europa){
  heading.style.cssText='font:600 12px system-ui;margin-bottom:8px';
  const canvas=document.createElement('canvas');canvas.style.cssText='width:100%;height:auto;image-rendering:pixelated';
  const legend=document.createElement('div');
- legend.textContent='Blue: radiolytic skin · Teal: reworked ice · Violet: inherited ice · Black: terrain void (signed field)';
+ legend.textContent='Blue: radiolytic skin · Teal: reworked ice · Violet: inherited ice · Gold: transported lens · Black: terrain void (signed field)';
  legend.style.cssText='font:11px/1.5 system-ui;margin-top:8px';
- const mode=document.createElement('button');mode.textContent='MAP / SECTION';let mapMode=false;
+ const mode=document.createElement('button');mode.textContent='MAP / SECTION';let mapMode=false,siteX=0,siteZ=0;
+ const site=document.createElement('div');site.style.cssText='font:12px system-ui;margin:8px 0';
  mode.onclick=()=>{mapMode=!mapMode;render()};
  const close=document.createElement('button');close.textContent='CLOSE';close.onclick=()=>{panel.hidden=true};
- panel.append(heading,canvas,legend,mode,close);document.body.append(panel);
- const colors={'radiolytic-skin':'#9ce6fc','reworked-ice':'#48a9b3','inherited-ice':'#7167b6'};
+ panel.append(heading,canvas,site,legend,mode,close);document.body.append(panel);
+ const colors={'radiolytic-skin':'#9ce6fc','reworked-ice':'#48a9b3','inherited-ice':'#7167b6','transported-lens':'#e3b35e'};
  const render=()=>{
-  const section=mapMode?world.europaMap({columns:81,rows:42,depth:.15}):world.europaSection({columns:81,rows:42});
+  const section=mapMode?world.europaMap({columns:81,rows:42,depth:.15}):world.europaSection({x:siteX,columns:81,rows:42});
+  site.textContent='SITE x='+siteX.toFixed(1)+' z='+siteZ.toFixed(1)+' · '+(mapMode?'tap map to choose a site':'section at selected x');
   canvas.width=section.columns*4;canvas.height=section.rows*4;
   const ctx=canvas.getContext('2d');
   section.cells.forEach((row,j)=>row.forEach((cell,i)=>{
    ctx.fillStyle=section.occupancy?.[j]?.[i]===false?'#091725':colors[cell.unit];
    ctx.fillRect(i*4,j*4,4,4);
   }));
+  if(mapMode){const i=Math.round((siteX-section.xStart)/(section.xEnd-section.xStart)*(section.columns-1)),j=Math.round((siteZ-section.zStart)/(section.zEnd-section.zStart)*(section.rows-1));ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(i*4-3,j*4-3,10,10)}
  };
+ canvas.addEventListener('click',event=>{if(!mapMode)return;const rect=canvas.getBoundingClientRect(),u=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),v=Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height));siteX=-8+16*u;siteZ=-8+16*v;render()});
  button.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)render()};
 }
