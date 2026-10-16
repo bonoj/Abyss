@@ -67,11 +67,13 @@ export function createEntropy(){
  const articulated=createArticulatedTrial(T,{parent:world.content,surface:terrainSurface,actor:()=>wanderer.inspect(),offset:botanicalOffset});
  // One live physics authority; mesh is a passive observer.
  const kinetic=createKineticBody({surface:terrainSurface});
+ let initialImpulseApplied=false;
  const trialMesh=new T.Mesh(new T.SphereGeometry(.18,16,12),new T.MeshStandardMaterial({color:0xf4c64b,roughness:.36,emissive:0x9c5a00,emissiveIntensity:.28}));
  trialMesh.name='Kinetic body';world.content.add(trialMesh);
  world.impulseKineticBody=(x=2.2,y=0,z=0)=>kinetic.impulse(x,y,z);
  function updateKinetic(dt){
   kinetic.update(dt);
+  if(!initialImpulseApplied&&kinetic.state.contact){kinetic.impulse(2.2,0,0);initialImpulseApplied=true}
   const p=kinetic.state,o=botanicalOffset();
   trialMesh.position.set(p.x-o.x,p.y,p.z-o.z);
  }
