@@ -53,7 +53,7 @@ export function createAlternatingFeet({surface}={}){
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
-   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,context);
+   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||hasFootSupport()});
   });
  }
  function inspect(){return {name:'alternating feet',mode:'contact-derived load share witness; horizontal drive remains single stance',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
