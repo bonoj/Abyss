@@ -42,3 +42,7 @@ If Shell fails to wake, check the console and the module graph, then workflow lo
 3. Check latest `main` commit and Pages Actions. Distinguish committed, deployed, public entry, and actual browser runtime. Compare inspector's executing SHA against `build.json` and successful workflow SHA. Never claim a build is live without evidence.
 4. Read `shell/LOCOMOTION.md` and resume its current approved frontier without rebuilding established systems. Preserve Genesis and other worlds. Do not resume the superseded fauna work.
 5. After material changes, update this handoff and root README if entrypoints, active world, deployment, or frontier changes. Keep the entry path short and durable.
+
+## Europa opt-in experiment (2026-10-16)
+
+`main.js` preserves Entropy as default. Add `?world=europa` to the canonical Shell URL to mount `codex/europa/world.js` instead. This early world composes the existing vessel and atlas terrain, with uncalibrated inspector metadata; it has no drilling, sampling, or material ledger. Do not interpret terrain IDs as Europan chemistry. Source commits: Europa module `967f00c0`, selector `1b2f58f`. The new world has **not been browser-runtime verified**. Preserve Entropy's independent locomotion frontier.
