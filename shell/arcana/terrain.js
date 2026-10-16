@@ -302,7 +302,7 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
     field[index]=-Math.max(0.01,Math.abs(field[index]));count++;
    }
   }
-  if(count)extractTerrainMesh({x0,x1,z0,z1});
+  if(count){solidCount-=count;voidCount+=count;extractTerrainMesh({x0,x1,z0,z1});}
   return {schema:'terrain-extraction-nodes/v0',removed,count,units:'positive signed-field lattice nodes',calibratedVolume:false};
  }
  regenerate();
