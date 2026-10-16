@@ -4,6 +4,7 @@ import {createHermeticon} from '../../arcana/hermeticon.js';
 import {createTerrain} from '../../arcana/terrain.js';
 import {createMaterialLedger} from './material-ledger.js';
 import {createStratigraphy} from './stratigraphy.js';
+import {allocateRecoveredParcels,recoveredIntervals} from './parcel-recovery.js';
 
 export function createEuropa(){
  const world=createHermeticon();
@@ -13,12 +14,13 @@ export function createEuropa(){
  const terrain=createTerrain({topology:'atlas'});
  world.content.add(terrain.group);
  const ledger=createMaterialLedger(terrain.inventoryNodes());
- const stratigraphy=createStratigraphy({surfaceAt:(x,z)=>{
+ const surfaceAt=(x,z)=>{
   const {fields,resolution:[w,h],halfExtent}=terrain.atlas;
   const ix=Math.max(0,Math.min(w-1,Math.round((x/halfExtent+1)*(w-1)/2)));
   const iz=Math.max(0,Math.min(h-1,Math.round((z/halfExtent+1)*(h-1)/2)));
   return fields.elevation[ix+w*iz];
- }});
+ };
+ const stratigraphy=createStratigraphy({surfaceAt});
  world.europaSection=options=>{
   const section=stratigraphy.crossSection(options);
   section.occupancy=section.cells.map((row,j)=>row.map((_,i)=>{
@@ -40,9 +42,9 @@ export function createEuropa(){
   }));
   return map;
  };
- world.europaProfile=(x=0,z=0)=>Array.from({length:25},(_,i)=>stratigraphy.sample(x,1.5-i*.125,z));
+ world.europaProfile=(x=0,z=0)=>Array.from({length:25},(_,i)=>stratigraphy.sample(x,surfaceAt(x,z)-i*.125,z));
  world.europaSite=(x=0,z=0)=>({x,z,profile:world.europaProfile(x,z),
-  surface:stratigraphy.sample(x,1.15,z),hypothesisOnly:true});
+  surface:stratigraphy.sample(x,surfaceAt(x,z),z),surfaceElevation:surfaceAt(x,z),hypothesisOnly:true});
  const extractions=[];
  let pairedTrial=null;
  world.compareSites=(sites=[{x:-3.1,z:2.2},{x:5,z:-3}])=>sites.map(({x,z})=>{
@@ -59,16 +61,18 @@ export function createEuropa(){
    const history=stratigraphy.sample(node.x,node.y,node.z);
    const key=history.unit;
    provenance[key]=(provenance[key]||0)+1;
-   parcels.push({position:[node.x,node.y,node.z],materialId:node.materialId,unit:key,composition:history.composition,provenance:history.provenance});
+   parcels.push({position:[node.x,node.y,node.z],depth:history.depth,materialId:node.materialId,unit:key,composition:history.composition,provenance:history.provenance});
   });
   const recovered={},dispersed={};
   for(const [k,n] of Object.entries(result.removed)){
    recovered[k]=Math.floor(n*recoveryFraction);
    dispersed[k]=n-recovered[k];
   }
+  const allocatedParcels=allocateRecoveredParcels(parcels,recovered);
+  const recoveredCore=recoveredIntervals(allocatedParcels);
   ledger.transfer('inPlace','recovered',recovered);
   ledger.transfer('inPlace','dispersed',dispersed);
-  const report={...result,recovered,dispersed,provenance,parcels,
+  const report={...result,recovered,dispersed,provenance,parcels:allocatedParcels,recoveredCore,
    provenanceAccountingMatches:parcels.length===result.count,
    balanced:ledger.inspect().balanced,
    inventoryMatchesTerrain:Object.entries(ledger.inspect().state.inPlace).every(([k,n])=>(terrain.inventoryNodes()[k]||0)===n)};
@@ -80,15 +84,15 @@ export function createEuropa(){
   const sites=[{name:'transported-lens',x:-3.1,z:2.2},{name:'reference',x:5,z:-3}];
   const trials=sites.map(site=>{
    const core=world.extractTestCore({x:site.x,z:site.z,radius:.8,yTop:3.6,yBottom:-3.6},.8);
-   const recoveredParcels=core.parcels.filter((_,i)=>i%5!==0);
+   const recoveredParcels=core.recoveredCore.ordered;
    const counts={};for(const parcel of recoveredParcels)counts[parcel.unit]=(counts[parcel.unit]||0)+1;
-   return {site,removedNodes:core.count,units:core.provenance,recoveredParcelProxy:counts,
+   return {site,removedNodes:core.count,units:core.provenance,recoveredUnits:counts,recoveredIntervals:core.recoveredCore.intervals,
     meanSoluteProxy:recoveredParcels.length?recoveredParcels.reduce((s,p)=>s+p.composition.soluteProxy,0)/recoveredParcels.length:null,
     lensDetected:!!counts['transported-lens'],ledgerBalanced:core.balanced,
     provenanceAccountingMatches:core.provenanceAccountingMatches,inventoryMatchesTerrain:core.inventoryMatchesTerrain};
   });
-  pairedTrial={schema:'europa-paired-core-trial/v0',synthetic:true,calibrated:false,
-   warning:'Parcel subset is a deterministic proxy, not the per-material recovered ledger allocation',
+  pairedTrial={schema:'europa-paired-core-trial/v1',synthetic:true,calibrated:false,
+   warning:'Recovered parcels match generic-material ledger counts; provenance remains synthetic and uncalibrated',
    trials,discriminated:trials[0].lensDetected&&!trials[1].lensDetected,
    balanced:ledger.inspect().balanced};
   return pairedTrial;
@@ -103,6 +107,7 @@ export function createEuropa(){
    lastExtraction:extractions.length?{count:extractions.at(-1).count,removed:extractions.at(-1).removed,
     recovered:extractions.at(-1).recovered,dispersed:extractions.at(-1).dispersed,
     provenance:extractions.at(-1).provenance,
+    recoveredIntervals:extractions.at(-1).recoveredCore.intervals,
     provenanceAccountingMatches:extractions.at(-1).provenanceAccountingMatches,
     inventoryMatchesTerrain:extractions.at(-1).inventoryMatchesTerrain}:null,
    pairedTrial,
