@@ -6,7 +6,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
  const ground=surface(x,z);
  if(!Number.isFinite(ground))throw Error('initial surface required');
  const state={x,y:ground+radius+height,z,vx:0,vy:0,vz:0,contact:false,time:0,steps:0,impacts:0,maxCorrection:0};
- let lastContact=null,wallContacts=0;
+ let lastContact=null,wallContacts=0,activeContact=null;
  let accumulator=0;
  const events=[];
  function impulse(vx=0,vy=0,vz=0){state.vx+=vx;state.vy+=vy;state.vz+=vz;events.push({t:+state.time.toFixed(4),type:'impulse',velocity:[vx,vy,vz]})}
