@@ -1,32 +1,31 @@
-// Terrain owns contact coefficients; this system owns their application.
-// Heightfield top-contact only. No arbitrary underworld normals yet.
-export function createTerrainContact({terrain,surface,profile='dissipative'}={}){
- if(!terrain?.contactProperties||typeof terrain.materialAt!=='function'||typeof surface!=='function')throw Error('terrain contact requires terrain and surface');
- function sample(x,z){
-  const height=surface(x,z);
-  if(!Number.isFinite(height))return null;
-  const material=terrain.materialAt(x,height,z);
-  const properties=terrain.contactProperties[profile];
-  if(!properties||!Number.isFinite(properties.restitution)||!Number.isFinite(properties.friction))throw Error('incomplete terrain contact profile '+profile);
-  return {height,materialId:material?.id??null,profile,friction:properties.friction,restitution:properties.restitution};
- }
+// Volumetric contact: geometry from terrain, coefficients from terrain.
+// Contact normal is oriented from solid into free space.
+export function createTerrainContact({terrain,profile='dissipative'}={}){
+ if(typeof terrain?.sphereContact!=='function'||!terrain.contactProperties)throw Error('volumetric terrain contact required');
  function resolve(body,{radius,dt,acceleration}){
-  const hit=sample(body.x,body.z);
-  if(!hit||body.y>hit.height+radius)return {supported:false,hit};
-  const penetration=hit.height+radius-body.y;
-  body.y=hit.height+radius;
-  // Resolve normal velocity with terrain restitution. Below one gravity step,
-  // hold resting contact to avoid numerical micro-bounces.
-  const incoming=body.vy;
-  const restThreshold=Math.abs(acceleration.y)*dt;
-  body.vy=incoming< -restThreshold?-incoming*hit.restitution:Math.max(0,incoming);
-  if(body.vy===0){
-   const speed=Math.hypot(body.vx,body.vz);
-   const loss=Math.min(speed,hit.friction*Math.max(0,-acceleration.y)*dt);
-   if(speed>0){body.vx*=1-loss/speed;body.vz*=1-loss/speed}
+  const hit=terrain.sphereContact(body,radius);
+  if(!hit)return {supported:false,hit:null};
+  const props=terrain.contactProperties[profile];
+  if(!props||!Number.isFinite(props.friction)||!Number.isFinite(props.restitution))throw Error('incomplete terrain contact profile '+profile);
+  const n=hit.normal;
+  body.x+=n.x*hit.penetration;body.y+=n.y*hit.penetration;body.z+=n.z*hit.penetration;
+  const vn=body.vx*n.x+body.vy*n.y+body.vz*n.z;
+  const load=Math.max(0,-(acceleration.x*n.x+acceleration.y*n.y+acceleration.z*n.z));
+  const resting=vn>=-load*dt;
+  let bounced=false;
+  if(vn<0){
+   const rebound=resting?0:-vn*props.restitution;
+   const delta=rebound-vn;
+   body.vx+=n.x*delta;body.vy+=n.y*delta;body.vz+=n.z*delta;
+   bounced=rebound>0;
   }
-  return {supported:body.vy===0,hit,penetration,bounced:body.vy>0&&incoming<0};
+  const normalSpeed=body.vx*n.x+body.vy*n.y+body.vz*n.z;
+  const tx=body.vx-n.x*normalSpeed,ty=body.vy-n.y*normalSpeed,tz=body.vz-n.z*normalSpeed;
+  const tangentSpeed=Math.hypot(tx,ty,tz);
+  const loss=Math.min(tangentSpeed,props.friction*load*dt);
+  if(tangentSpeed>0){const k=loss/tangentSpeed;body.vx-=tx*k;body.vy-=ty*k;body.vz-=tz*k}
+  return {supported:resting&&n.y>0.5,hit:{...hit,...props,profile},penetration:hit.penetration,bounced};
  }
- function inspect(){return {name:'terrain contact',mode:'top-surface heightfield',profile,properties:{...terrain.contactProperties[profile]},source:'terrain.contactProperties'}}
- return {sample,resolve,inspect};
+ function inspect(){return {name:'terrain contact',mode:'volumetric triangle surface',profile,properties:{...terrain.contactProperties[profile]},source:'terrain.contactProperties',geometry:'terrain.sphereContact'}}
+ return {resolve,inspect};
 }
