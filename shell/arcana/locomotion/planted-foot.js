@@ -1,6 +1,6 @@
 // A single anchored stance with a unilateral, inextensible tether.
 // Kinetic body invokes this constraint inside its sole fixed-step solver.
-export function createPlantedFoot({mass=1,force=4,reach=.9}={}){
+export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
  if(!(mass>0&&force>0&&reach>0))throw Error('positive mass, force and reach required');
  let anchor=null,phase='awaiting support',forceX=0,plantCount=0,poweredSteps=0;
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
