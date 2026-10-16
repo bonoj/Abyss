@@ -50,3 +50,8 @@ If Shell fails to wake, check the console and the module graph, then workflow lo
 ## Europa excavation experiment
 
 The opt-in Europa scene now inventories positive signed-field lattice nodes using `terrain.inventoryNodes()`, then removes actual occupied nodes via `terrain.extractNodes({x,z,radius,yTop,yBottom})`, rebuilding local terrain chunks. Its conservation ledger tracks the removed generic material IDs as recovered and dispersed counts. Explicit browser diagnostic: `europaExtractJSON(options,recoveryFraction)`; **no automatic excavation on boot**. This is discrete-node accounting, not calibrated volume/mass, chemical composition, or scientifically valid ice-core recovery. Current generic terrain material IDs remain non-Europa species. Read inspector `world.experiment.materialAccounting` and `lastExtraction` after testing. Exact-source regression and browser execution of this revision are not yet verified. Changes are isolated from Entropy except for adding reusable terrain methods.
+
+
+## Europa dedicated cold boot — authoritative (2026-10-16)
+
+For **“Go to Abyss Europa”**, read [codex/europa/HANDOFF.md](codex/europa/HANDOFF.md), then the [EUROPA-01 expedition Ledger](https://github.com/bonoj/Ledger/blob/main/notes/EUROPA_01.md). The dedicated handoff supersedes the older preliminary Europa paragraphs above. Browser-confirmed paired synthetic cores and conservation are documented there; Entropy remains the default. The new handoff is operational documentation, not proof of a newer deployed browser build.
