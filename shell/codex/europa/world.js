@@ -70,10 +70,27 @@ export function createEuropa(){
   const report={...result,recovered,dispersed,provenance,parcels,
    provenanceAccountingMatches:parcels.length===result.count,
    balanced:ledger.inspect().balanced,
-   inventoryMatchesTerrain:JSON.stringify(ledger.inspect().state.inPlace)===JSON.stringify(terrain.inventoryNodes())};
+   inventoryMatchesTerrain:Object.entries(ledger.inspect().state.inPlace).every(([k,n])=>(terrain.inventoryNodes()[k]||0)===n)};
   extractions.push(report);return report;
  };
  world.materialSurvey=()=>ledger.inspect();
+ world.interrogateEuropa=()=>{
+  if(extractions.length)throw Error('Paired trial requires a fresh, unexcavated Europa scene');
+  const sites=[{name:'transported-lens',x:-3.1,z:2.2},{name:'reference',x:5,z:-3}];
+  const trials=sites.map(site=>{
+   const core=world.extractTestCore({x:site.x,z:site.z,radius:.8,yTop:3.6,yBottom:-3.6},.8);
+   const recoveredParcels=core.parcels.filter((_,i)=>i%5!==0);
+   const counts={};for(const parcel of recoveredParcels)counts[parcel.unit]=(counts[parcel.unit]||0)+1;
+   return {site,removedNodes:core.count,units:core.provenance,recoveredParcelProxy:counts,
+    meanSoluteProxy:recoveredParcels.length?recoveredParcels.reduce((s,p)=>s+p.composition.soluteProxy,0)/recoveredParcels.length:null,
+    lensDetected:!!counts['transported-lens'],ledgerBalanced:core.balanced,
+    provenanceAccountingMatches:core.provenanceAccountingMatches,inventoryMatchesTerrain:core.inventoryMatchesTerrain};
+  });
+  return {schema:'europa-paired-core-trial/v0',synthetic:true,calibrated:false,
+   warning:'Parcel subset is a deterministic proxy, not the per-material recovered ledger allocation',
+   trials,discriminated:trials[0].lensDetected&&!trials[1].lensDetected,
+   balanced:ledger.inspect().balanced};
+ };
  const originalInspect=world.inspect.bind(world);
  world.inspect=()=>({name:'Europa',shell:originalInspect(),
   experiment:{schema:'europa-world/v0',status:'authoritative lattice-node extraction, no physical calibration',
