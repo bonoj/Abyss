@@ -11,7 +11,7 @@ export function createTerrainContact({terrain,profile='dissipative'}={}){
   body.x+=n.x*hit.penetration;body.y+=n.y*hit.penetration;body.z+=n.z*hit.penetration;
   const vn=body.vx*n.x+body.vy*n.y+body.vz*n.z;
   const load=Math.max(0,-(acceleration.x*n.x+acceleration.y*n.y+acceleration.z*n.z));
-  const resting=vn>=-load*dt;
+  const resting=vn>=-load*dt*1.5;
   let bounced=false;
   let reboundNormalSpeed=vn;
   if(vn<0){
