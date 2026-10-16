@@ -3,7 +3,7 @@ import {createPlantedFoot} from './planted-foot.js';
 // A handoff happens on release, not on an elapsed gait clock.
 export function createAlternatingFeet({surface}={}){
  const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
- let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0;
+ let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1;
  function sample(body,context){
   const current=feet[active];
   const receiver=feet[1-active];
@@ -28,11 +28,20 @@ export function createAlternatingFeet({surface}={}){
   return force;
  }
  function constrain(body,context){
+  const planted=feet.map(f=>!!f.getAnchor());
+  const count=planted.filter(Boolean).length;
+  loadShares=planted.map(v=>v?1/count:0);
+  if(count===2)doubleSupportSteps++;
+  else if(count===1)singleSupportSteps++;
+  else noFootSupportSteps++;
+  const loaded=count===1?planted.indexOf(true):-1;
+  if(loaded>=0&&lastLoaded>=0&&loaded!==lastLoaded)loadTransferCount++;
+  if(loaded>=0)lastLoaded=loaded;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
    if(i===active||foot.inspect().phase==='swing')foot.constrain(body,context);
   });
  }
- function inspect(){return {name:'alternating feet',mode:'one loaded stance; two independent swing states',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'contact-derived load share witness; horizontal drive remains single stance',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
