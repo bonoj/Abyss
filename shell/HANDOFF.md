@@ -22,18 +22,23 @@ For GitHub write failures, follow the established shared [Gate protocol](https:/
 
 If Shell fails to wake, check the console and the module graph, then workflow logs. Restore a known-good Shell tree from Abyss history if needed. Do not change Hermeticon or other Abyss experiments to fix Shell. Avoid service workers and shared-origin storage collisions.
 
+## Active experiment — composable locomotion
+- **Read [LOCOMOTION.md](./LOCOMOTION.md) immediately after this handoff.** It is the authoritative working plan, implementation ledger, acceptance tests, and next frontier for the Entropy Wanderer.
+- User chose a single articulated Wanderer exploring gravity-bound, gravity-resisting, and gravity-decoupled locomotion. Two-bone IK and an isolated visual follower are committed; real stance/swing foot planting is next. Do not mistake visual following for physical locomotion.
+- Previous fauna assembly plan below is historical/superseded, **not the active next task**.
+
 ## Current Entropy state — 2026-10-16
 - `shell/main.js` mounts Entropy, not Genesis. Genesis is preserved independently.
 - `shell/arcana/terrain.js`: `topology:'atlas'`, deterministic seed 741, 85×85 2D elevation map, 50.4×50.4 world, 85×21×85 SDF samples. Two mesas, a jagged peak complex, broad flats. Atlas topology excludes reference fixture operations. The terrain remains volumetric and deformable by meteor impacts.
 - `shell/arcana/wanderer.js`: terrain-offset following begins outside a 4.86-unit horizontal follow radius, offset clamped ±14 on each axis; no camera-frustum-aware viewport following. Navigation uses supported paths and enclosing-glass clearance.
 - Entropy uses the existing `createBeadDebris` physics, `createCinderfall`, impact dispatcher, terrain navigation, and inspector. Inspect current source for authoritative wiring.
 - **Fauna status: no sheep currently mounted.** One-off `shell/arcana/creatures/bb-sheep.js` was deleted at `19dea60a`; Entropy's import, update, and inspection wiring were removed. It had triggered a freeze on proximity detonation. Strong suspected cause: it passed `color.getHex()` numbers to `debris.emit`, but debris uses `InstancedMesh.setColorAt()` with `THREE.Color` objects. This was not verified by captured browser exception. Do not restore that implementation.
-- **Next approved direction:** build a reusable Arcana Fauna Assembly composition layer, then sheep as its first recipe. Anatomy = BB volumes, shells, heads, legs, palettes; behavior = terrain support, grazing/herding, proximity; lifecycle = alive/startled/disassembled; material ownership = every anatomical BB transferred exactly once into the shared detached BB engine. Integrate creature systems with meteor impact dispatch and observation. Prove reuse with a second distinct creature. Existing references: `arcana/creatures/first-bestiary.js`, `arcana/creatures/velvet-drifters.js`, `arcana/locomotion/grounding.js`, `arcana/physics/bead-debris.js`, `arcana/physics/impact-dispatcher.js`.
+- **Superseded historical direction (do not resume without new approval):** build a reusable Arcana Fauna Assembly composition layer, then sheep as its first recipe. Anatomy = BB volumes, shells, heads, legs, palettes; behavior = terrain support, grazing/herding, proximity; lifecycle = alive/startled/disassembled; material ownership = every anatomical BB transferred exactly once into the shared detached BB engine. Integrate creature systems with meteor impact dispatch and observation. Prove reuse with a second distinct creature. Existing references: `arcana/creatures/first-bestiary.js`, `arcana/creatures/velvet-drifters.js`, `arcana/locomotion/grounding.js`, `arcana/physics/bead-debris.js`, `arcana/physics/impact-dispatcher.js`.
 - **Performance:** preserve mobile-first CPU performance; avoid per-bead meshes and unnecessary per-frame full-world terrain queries. Do not invent population or BB caps. Report authored, live, transferred, and detached BB accounting.
 
 ## Cold boot command: “Go to Abyss”
 1. Open `bonoj/Abyss` README → this handoff. Do not ask the user to fetch files, copy source, or supply paths.
 2. Inspect the live repository tree and relevant Arcana/Codex source, plus `.github/workflows/pages.yml`; treat documentation as orientation, not proof of current implementation.
 3. Check latest `main` commit and Pages Actions. Distinguish committed, deployed, public entry, and actual browser runtime. Compare inspector's executing SHA against `build.json` and successful workflow SHA. Never claim a build is live without evidence.
-4. Resume the approved frontier without rebuilding established systems. Preserve Genesis and other worlds. For fauna, discuss assembly contracts and regression checks before implementation if design decisions are unresolved.
+4. Read `shell/LOCOMOTION.md` and resume its current approved frontier without rebuilding established systems. Preserve Genesis and other worlds. Do not resume the superseded fauna work.
 5. After material changes, update this handoff and root README if entrypoints, active world, deployment, or frontier changes. Keep the entry path short and durable.
