@@ -16,6 +16,26 @@ export function createTerrain({topology='reference'}={}){
  const fields={jurisdiction:new Uint8Array(size),gradientWeight:new Uint8Array(size),elevation:new Float32Array(size),substrate:new Uint8Array(size),hydrology:new Uint8Array(size),provenance:new Uint8Array(size),strata:new Uint8Array(size),population:new Uint8Array(size),features:new Uint8Array(size)};
  return {version:2,origin:[0,0],halfExtent,resolution:[width,height],seed:741,fields,regions:{0:'unassigned',1:'summerlands',2:'winter-kings-realm',3:'gradient',4:'other'},compiled:true};})();
  atlas.fields.elevation.fill(1.15);atlas.fields.strata.fill(1);
+ if(topology==='atlas')for(let z=0;z<85;z++)for(let x=0;x<85;x++){
+  const X=(x/84*2-1)*25.2,Z=(z/84*2-1)*25.2;
+  const mesa=(cx,cz,r,h)=>{
+   const dx=X-cx,dz=Z-cz,a=Math.atan2(dz,dx);
+   const edge=r*(1+.08*Math.sin(5*a+cx)+.05*Math.sin(9*a+cz));
+   const t=Math.max(0,Math.min(1,(Math.hypot(dx,dz)-edge+.3)/1.05));
+   return h*(1-t*t*(3-2*t));
+  };
+  const m=Math.max(mesa(-10,6,4.4,1.55),mesa(11,-8,3.7,1.3));
+  const dx=X-10,dz=Z-10,rad=Math.hypot(dx/8.5,dz/8);
+  const t=Math.max(0,Math.min(1,(rad-.62)/.56)),mask=1-t*t*(3-2*t);
+  const ridge=Math.pow(1-Math.abs(Math.sin(dx*.57+Math.sin(dz*.38))),.65);
+  const spur=Math.pow(1-Math.abs(Math.sin(dz*.83-dx*.31)),1.7);
+  const peak=mask*(.3+1.65*(ridge*.74+spur*.26));
+  const i=x+85*z;
+  atlas.fields.elevation[i]=1.15+Math.max(m,peak);
+  atlas.fields.features[i]=peak>.12?2:m>.04?1:0;
+  atlas.fields.substrate[i]=peak>.12?3:m>.04?4:1;
+ }
+
  const contactProperties={standard:{restitution:.38},dissipative:{restitution:.24,friction:.86}};
  const field=new Float32Array(NX*NY*NZ),id=(x,y,z)=>x+NX*(y+NY*z);
  const xp=x=>(x/(NX-1)*2-1)*WORLD_HALF,yp=y=>MINY+y/(NY-1)*(MAXY-MINY),zp=z=>(z/(NZ-1)*2-1)*WORLD_HALF;
