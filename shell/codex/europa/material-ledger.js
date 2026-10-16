@@ -7,7 +7,7 @@ export function createMaterialLedger(initial={}){
  const state={inPlace:{...initial},recovered:{},dispersed:{},lost:{},introduced:{}};
  for(const k of species)for(const name of ['recovered','dispersed','lost','introduced'])state[name][k]=0;
  const transfer=(from,to,inventory)=>{
-  if(!['inPlace','recovered','dispersed','lost','introduced'].includes(from)||!['inPlace','recovered','dispersed','lost','introduced'].includes(to)||from===to)throw Error('invalid transfer');
+  if(from!=='inPlace'||!['recovered','dispersed','lost'].includes(to))throw Error('invalid transfer');
   if(!inventory||Object.keys(inventory).some(k=>!species.includes(k)||!finite(inventory[k])))throw Error('invalid inventory');
   for(const [k,n] of Object.entries(inventory))if(n>state[from][k]+1e-9)throw Error('insufficient '+k);
   for(const [k,n] of Object.entries(inventory)){state[from][k]-=n;state[to][k]+=n}
