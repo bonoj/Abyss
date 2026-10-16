@@ -8,13 +8,15 @@ export function createTerrainContact({terrain,profile='dissipative'}={}){
   const props=terrain.contactProperties[profile];
   if(!props||!Number.isFinite(props.friction)||!Number.isFinite(props.restitution))throw Error('incomplete terrain contact profile '+profile);
   const n=hit.normal;
-  if(!footSupport){body.x+=n.x*hit.penetration;body.y+=n.y*hit.penetration;body.z+=n.z*hit.penetration;}
+  // A planted foot cannot disable physical body-terrain collision.
+  // Resolve penetrations even when the leg is transmitting load.
+  body.x+=n.x*hit.penetration;body.y+=n.y*hit.penetration;body.z+=n.z*hit.penetration;
   const vn=body.vx*n.x+body.vy*n.y+body.vz*n.z;
   const load=Math.max(0,-(acceleration.x*n.x+acceleration.y*n.y+acceleration.z*n.z));
   const resting=vn>=-load*dt*1.5;
   let bounced=false;
   let reboundNormalSpeed=vn;
-  if(vn<0&&!footSupport){
+  if(vn<0){
    const rebound=resting?0:-vn*props.restitution;
    const delta=rebound-vn;
    body.vx+=n.x*delta;body.vy+=n.y*delta;body.vz+=n.z*delta;
