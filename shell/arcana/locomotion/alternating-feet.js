@@ -53,6 +53,10 @@ export function createAlternatingFeet({surface}={}){
     lastStrut={time:body.time,active,length,restLength,compression,lengthRate,magnitude,tension,connected,maxLength,direction:[nx,ny,nz]};
    }
   }
+  // Leg actuator loads the body at a hip below its center of mass.
+  // Planar torque follows the same force; no authored fall trigger.
+  const hipOffset=.24,hipX=-hipOffset*Math.sin(body.pitch||0),hipY=-hipOffset*Math.cos(body.pitch||0);
+  force.torque=hipY*force.x-hipX*force.y;
   return force;
  }
  function hasFootSupport(){return feet.some(f=>!!f.getAnchor())&&!!lastStrut?.connected;}
