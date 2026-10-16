@@ -319,3 +319,22 @@ Browser `f5cf66e4`: 26 handoffs, 25 grounded and 1 unplanted; 15 distinct dual-s
 ### AH. First per-foot support-accounting witness (browser verification pending)
 
 Accepted browser `985e59b9`: 17/17 grounded handoffs, zero dual-swing episodes, 906 held steps, body x=−10.02833, 83.63 FPS. Aperture is a *rendering* boundary; physical ground extends beyond it, so x beyond 9.92 is not a terrain-contact bug. Added fixed-step `loadShares` computed from actual planted anchors (0/1 per foot, equal shares in double stance), `doubleSupportSteps`, `singleSupportSteps`, `noFootSupportSteps`, and `loadTransferCount` when sole support changes from one foot to the other. **These are diagnostic candidate load fractions, not yet forces transmitted to the body**: terrain still supplies body vertical normal impulse. This is a deliberate measured seam before transferring vertical support authority. Do not claim physical weight transfer from these counters alone. Next: verify these witnesses in browser, then integrate foot normal support into the sole body solver and avoid duplicate terrain support.
+
+
+### AI. Milestone — the first continuous two-foot support sequence
+
+**Observed on 2026-10-16 (EDT); inspector build [`543f3294`](https://github.com/bonoj/Abyss/commit/543f32945720b3d1f4cbae310bcb3082d17571ce), committed 12:19:38 PM EDT.** Browser witness at 10.7000 s / 1,284 fixed physics steps: **19/19 grounded handoffs; 18 transitions between sole planted feet; 152 double-support steps; 1,030 single-support steps; 102 no-foot steps (initial settling); zero dual-swing steps; 1,011 held steps; 104.28 FPS.** Both feet reached 10 plantings and 9 completed swings. Body position x=−11.585 from x=1.3 (12.885 units net), velocity [0,0,0] at capture, with the active stance foot taut at its 0.9-unit reach. The foot tethers accumulated nonzero reach correction and radial impulse: do not describe this as correction-free. Body's own terrain contact still supplies vertical normal support; the foot loadShares [0,1] are diagnostic contact-based fractions, **not transmitted vertical load**. Thus this is a verified *contact continuity / sole-foot transition* milestone, not yet dynamically foot-supported walking. The terrain aperture is visual; ground physically extends beyond it.
+
+#### Commit-clock sprint chronology (2026-10-16, America/New_York / EDT)
+
+| Commit time | Commit | Durable milestone |
+| --- | --- | --- |
+| 12:02:12 PM | [`00a12923`](https://github.com/bonoj/Abyss/commit/00a12923) | First repeated single-foot gait prototype documented |
+| 12:07:37 PM | [`178dfe95`](https://github.com/bonoj/Abyss/commit/178dfe95) | Continuous swing visualization and low-speed contact settling documented; later browser witness showed 11 completed swings and four initial impacts |
+| 12:10:19 PM | [`5980aa48`](https://github.com/bonoj/Abyss/commit/5980aa48) | Two-foot alternating prototype documented; subsequent browser witness showed 25 handoffs, 67.52 FPS |
+| 12:14:53 PM | [`885ac046`](https://github.com/bonoj/Abyss/commit/885ac046) | Release gated on receiving-foot anchor (followed by initial receiver seeding) |
+| 12:15:08 PM | [`985e59b9`](https://github.com/bonoj/Abyss/commit/985e59b9) | Contact-gated prototype documented; later browser witness showed 17/17 grounded handoffs, zero dual-swing, 83.63 FPS |
+| 12:19:30 PM | [`6b038c4e`](https://github.com/bonoj/Abyss/commit/6b038c4e) | Per-foot contact-derived load-share instrumentation committed |
+| 12:19:38 PM | [`543f3294`](https://github.com/bonoj/Abyss/commit/543f3294) | Instrumentation documented; browser witness confirmed 18 sole-foot transitions and 104.28 FPS |
+
+**Timing method:** times above are GitHub commit `created_at` timestamps converted from UTC to EDT; they are *not* invented times of browser observation. The browser snapshots were supplied after the corresponding builds. First documented gait to first documented load accounting: **17 minutes 26 seconds**. Preserve original Wanderer, IK follower, borehole and the 120 Hz single-body authority. **Next experiment:** route vertical support through actual foot contacts without duplicating the terrain normal impulse, with explicit diagnostics for transmitted force, body height, and support loss.
