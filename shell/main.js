@@ -17,6 +17,7 @@ if(europa){
  globalThis.europaProfileJSON=(x,z)=>world.europaProfile(x,z);
  globalThis.europaSiteJSON=(x,z)=>world.europaSite(x,z);
  globalThis.europaCompareJSON=sites=>world.compareSites(sites);
+ globalThis.europaInterrogateJSON=()=>world.interrogateEuropa();
 }
 
 if(europa){
@@ -37,10 +38,12 @@ if(europa){
  const site=document.createElement('div');site.style.cssText='font:12px system-ui;margin:8px 0';
  const compare=document.createElement('button');compare.textContent='COMPARE SITES';
  const comparison=document.createElement('div');comparison.style.cssText='font:11px/1.5 system-ui;white-space:pre-wrap;margin:8px 0';
+ const drill=document.createElement('button');drill.textContent='EXTRACT TWO CORES';
+ drill.onclick=()=>{try{const report=world.interrogateEuropa();drill.disabled=true;comparison.textContent=report.trials.map(t=>t.site.name+': '+t.removedNodes+' nodes · lens '+(t.lensDetected?'DETECTED':'absent')+' · balance '+t.ledgerBalanced+' · terrain '+t.inventoryMatchesTerrain).join('\n')+'\nDiscriminated: '+report.discriminated+' · synthetic only';render()}catch(error){comparison.textContent='Trial failed: '+error.message}};
  compare.onclick=()=>{const results=world.compareSites([{x:-3.1,z:2.2},{x:5,z:-3}]);comparison.textContent=results.map(r=>'('+r.x+', '+r.z+') · lens '+(r.transportedLens?'YES':'NO')+' · solute proxy '+r.meanSoluteProxy.toFixed(3)).join('\n')+'\nSynthetic hypotheses only; no cores extracted.'};
  mode.onclick=()=>{mapMode=!mapMode;render()};
  const close=document.createElement('button');close.textContent='CLOSE';close.onclick=()=>{panel.hidden=true};
- panel.append(heading,canvas,site,legend,mode,compare,comparison,close);document.body.append(panel);
+ panel.append(heading,canvas,site,legend,mode,compare,drill,comparison,close);document.body.append(panel);
  const colors={'radiolytic-skin':'#9ce6fc','reworked-ice':'#48a9b3','inherited-ice':'#7167b6','transported-lens':'#e3b35e'};
  const render=()=>{
   const section=mapMode?world.europaMap({columns:81,rows:42,depth:.15}):world.europaSection({x:siteX,columns:81,rows:42});
