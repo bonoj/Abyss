@@ -1,5 +1,5 @@
 // One authoritative state. Rendering and instrumentation only observe it.
-export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,step=1/120,height=1.4}={}){
+export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,actuator=null,step=1/120,height=1.4}={}){
  if(typeof surface!=='function')throw Error('surface required');
  if(!gravity||typeof gravity.sample!=='function')throw Error('gravity system required');
  if(!contact||typeof contact.resolve!=='function')throw Error('contact system required');
