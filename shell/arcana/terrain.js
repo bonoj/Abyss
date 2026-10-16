@@ -41,8 +41,8 @@ export function createTerrain({topology='reference'}={}){
  // Vertical bores pierce the complete slab; raised and lowered regions act
  // independently on upper and lower surfaces.
  // Temporary visible-topology fixture for the equatorial edge study.
- for(const [x,z,r] of [[-3.6,1.8,1.25],[4.4,-2.5,1.45],[7.9,3.0,1.15],[0,9.55,1.25],[-4.8,8.1,.82],[4.8,8.1,.82]])operations.push({kind:'through-hole',x,z,r});
- for(const [face,x,z,r,delta] of [['top',-5.0,-3.5,2.8,1.35],['top',2.2,4.4,2.5,1.55],['top',6.8,-1.0,2.1,-0.9],['bottom',-2.0,-5.3,2.7,1.2],['bottom',4.2,4.0,2.5,-0.85],['top',0,9.0,2.25,1.25],['bottom',-3.8,8.4,1.8,.85],['top',-7.0,7.0,3.2,2.4],['top',7.0,7.0,3.1,2.15],['top',-8.8,-4.5,3.4,2.65],['top',5.2,-8.6,3.0,2.3]])operations.push({kind:delta>=0?'raise':'lower',face,x,z,r,delta});
+ if(topology!=='flatlandia')for(const [x,z,r] of [[-3.6,1.8,1.25],[4.4,-2.5,1.45],[7.9,3.0,1.15],[0,9.55,1.25],[-4.8,8.1,.82],[4.8,8.1,.82]])operations.push({kind:'through-hole',x,z,r});
+ if(topology!=='flatlandia')for(const [face,x,z,r,delta] of [['top',-5.0,-3.5,2.8,1.35],['top',2.2,4.4,2.5,1.55],['top',6.8,-1.0,2.1,-0.9],['bottom',-2.0,-5.3,2.7,1.2],['bottom',4.2,4.0,2.5,-0.85],['top',0,9.0,2.25,1.25],['bottom',-3.8,8.4,1.8,.85],['top',-7.0,7.0,3.2,2.4],['top',7.0,7.0,3.1,2.15],['top',-8.8,-4.5,3.4,2.65],['top',5.2,-8.6,3.0,2.3]])operations.push({kind:delta>=0?'raise':'lower',face,x,z,r,delta});
 
  fieldMin=Infinity;fieldMax=-Infinity;solidCount=0;voidCount=0;
  for(let z=0;z<NZ;z++)for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
