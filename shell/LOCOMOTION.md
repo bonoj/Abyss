@@ -737,3 +737,10 @@ Each limb has a distinct body-local hip and a distinct terrain-sampled contact a
 **Executing build:** `52d86fafccae74f2f5d7d831287294b0db53a116`. **FPS:** 71.1118. **Elapsed:** 8.3417 s, **120 Hz steps:** 1001. The N=2 axial contact fixture has both feet supporting: left force (0,+4.9,0) and right force (0,+4.9,0), equal/opposite pitch moments +0.588 and -0.588. Aggregate force (0,+9.8,0), net moment 0, gravity residual (0,0,0). Both leg lengths 0.81277778 against rest length 0.84, compression 0.02722222; both reachable and connected. Body COM (1.3,2.20283,0), linear velocity (0,0,0), pitch 0, omega 0, peak absolute pitch 0. No body impacts, no terrain penetration correction, no recorded events. Support 1000/1001 ticks (first tick settles into contact bookkeeping). This verifies **static symmetric equilibrium without scripted righting** on the tested flat surface.
 
 **Limits of this witness:** not yet a perturbation/recovery test, not uneven ground, not a coupled contact solver, and not walking. The exact zero residual is a steady-state snapshot, not a stability proof. Preserve this as the standing baseline for Turn B. Do not reintroduce body-directed gait propulsion.
+
+
+### BH. Balance perturbation trial (2026-10-16)
+
+Commit `50a56ffc` adds **one deterministic finite external impulse** to the verified N=2 standing fixture: once the kinetic body's time first reaches 2 seconds, apply `kinetic.impulse(0.08,0,0)`. This adds +0.08 to horizontal velocity, not position or pitch. No other locomotion physics or coefficients changed; no balancing servo or scripted recovery. Inspector includes `balance perturbation` with time, deltaV, and applied flag. The body's existing events also record the impulse.
+
+**Browser witness pending.** Compare before/after body COM, pitch, omega, leg compression and forces, gravity wrench residual, support losses, and any body impact. Static equilibrium was established in BG; this trial asks whether that equilibrium is dynamically stable against a small disturbance. If it falls, preserve the evidence and address the physical deficiency before adding a gait planner.
