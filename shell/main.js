@@ -7,3 +7,6 @@ const europa=new URLSearchParams(location.search).get('world')==='europa';
 const world=europa?createEuropa():createEntropy();
 globalThis.Athanor.mount(europa?'europa':'entropy',world);
 world.attachView(globalThis.Athanor.view());
+
+// Explicit, opt-in diagnostic operation; no automatic excavation on boot.
+if(europa)globalThis.europaExtractJSON=(options,recoveryFraction)=>world.extractTestCore(options,recoveryFraction);
