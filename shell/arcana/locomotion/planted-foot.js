@@ -1,6 +1,6 @@
 // A single anchored stance with a unilateral, inextensible tether.
 // Kinetic body invokes this constraint inside its sole fixed-step solver.
-export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
+export function createPlantedFoot({mass=1,force=4,reach=.9,surface,offsetX=0}={}){
  if(!(mass>0&&force>0&&reach>0))throw Error('positive mass, force and reach required');
  let anchor=null,phase='awaiting support',forceX=0,plantCount=0,poweredSteps=0;
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
@@ -10,10 +10,10 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   forceX=0;
   if(!contact?.supported){unsupportedSteps++;if(phase!=='swing')phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
   if(phase==='swing')return {x:0,y:0,z:0};
-  if(!anchor){anchor={x:body.x,y:surface?.(body.x,body.z)??body.y-.18,z:body.z};plantCount++}
+  if(!anchor){anchor={x:body.x+offsetX,y:surface?.(body.x+offsetX,body.z)??body.y-.18,z:body.z};plantCount++}
   extension=Math.hypot(body.x-anchor.x,body.z-anchor.z);
   if(extension>=strokeEnd&&!holdStance){
-   swingFrom=anchor;swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
+   swingFrom=anchor;swingTarget={x:body.x-lead+offsetX,z:body.z};swingProgress=0;
    anchor=null;phase='swing';releaseCount++;
    return {x:0,y:0,z:0};
   }
