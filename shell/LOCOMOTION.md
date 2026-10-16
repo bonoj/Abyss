@@ -60,6 +60,20 @@ Commits:
 
 A visible body, two IK-driven legs, terrain-sampled foot targets, alternating visual motion, and per-leg error diagnostics. The original Wanderer retains all navigation and movement authority. Contacts are provisional; feet can skate. **No claim of successful Pages deployment or browser execution** based solely on commits.
 
+## Direction correction — gravity first, instrumented autonomous experiments (2026-10-16)
+
+**Observation:** planted feet remained far behind the independently moving body, even after predictive stepping (`e89a2afa`). This is a structural mismatch, not a request for more gait threshold tuning. The reactive gait prototype is preserved as historical code, **not the active experiment**.
+
+**First principle:** locomotion moves a mass through forces while negotiating contacts. Build in this order: external forces → mass/velocity → contact constraints → locomotion control → articulation/IK. Gravity is an input, not a mode.
+
+**Operating agreement:** The assistant authors deterministic, scripted trials; the user need not manually steer. A single JSON report containing chronological samples, events, scenario parameters, diagnostics, and build identity is returned by the user for analysis. Distinguish measured data from estimates. Preserve manual navigation and Genesis. Avoid background claims or assuming the assistant can read a live browser directly.
+
+**New frontier:** an isolated **drop-and-settle** trial: one mass, terrain height, gravity, collision/support, fixed-step integration, and bounded telemetry. No gait or IK. The runner must not replace the existing Wanderer's movement authority. Prefer explicit self-test/export entrypoints over silent background activity.
+
+**Acceptance:** deterministic replay for the same parameters; no persistent penetration; stable rest; finite velocity/position; coherent contact transition and time sequence. The next scenario after passing is horizontal motion, then one-limb support, then alternating support.
+
+**Telemetry contract (`entropy-locomotion/v1`):** scenario, seed, dt, simulated time, sample count, initial conditions, gravity, mass/radius, chronological `samples` with position/velocity/contact/penetration/energy, `events` for impact and rest, and `summary` with max penetration, settling time, energy behavior. Include explicit source SHA when available; otherwise `null`, not a guessed build identity. Export JSON via an accessible global inspection function and include it in Entropy's inspector.
+
 ## Roadmap and acceptance tests
 
 ### 1. Real foot planting — IMPLEMENTED IN SOURCE, NEEDS RUNTIME VALIDATION
@@ -92,7 +106,7 @@ Explore inertial flight, zero-g orientation and manipulation, and authored field
 
 **Proof:** zero terrain contacts without losing articulated body continuity.
 
-## Immediate next turn
+## Previous immediate next turn (superseded by gravity-first trial)
 
 1. Inspect the current articulated trial, terrain query, and movement contracts.
 2. Extract a reusable stance/swing contact controller from the visual rig.
@@ -110,9 +124,9 @@ For each iteration record: attempt, commits, observed verification, provisional/
 
 **A commit is not a deployed build. A rendered pose is not physical locomotion. A plausible gait is not planted contact.**
 
-**Current frontier:** Stage 1 — validate planted contact and solver reach in actual browser.  
+**Current frontier:** isolated deterministic gravity/contact trial; see direction correction above.  
 **Current implementation:** two-bone IK plus articulated visual follower.  
-**Next proof:** visually confirm stance stability, foot reach, and landing behavior in the executing browser.
+**Next proof:** fixed-step drop-and-settle JSON with reproducible chronological samples.
 
 ### C. Stance/swing controller — committed, browser unverified
 Commits: `116cd72d` (new `arcana/locomotion/foot-contacts.js`), `760adb35` (articulated trial integration).
