@@ -39,11 +39,13 @@ export function createAlternatingFeet({surface}={}){
   const stance=feet[active].getAnchor()||feet.find(f=>f.getAnchor())?.getAnchor();
   lastStrut=null;
   if(stance){
-   const dx=body.x-stance.x,dy=body.y-stance.y,dz=body.z-stance.z;
+   const hipX=body.x-.24*Math.sin(body.pitch||0),hipY=body.y-.24*Math.cos(body.pitch||0);
+   const dx=hipX-stance.x,dy=hipY-stance.y,dz=body.z-stance.z;
    const length=Math.hypot(dx,dy,dz),restLength=.84,stiffness=180,damping=20,maxForce=80;
    if(length>1e-8){
     const nx=dx/length,ny=dy/length,nz=dz/length;
-    const lengthRate=body.vx*nx+body.vy*ny+body.vz*nz;
+    const hipVx=body.vx-.24*Math.cos(body.pitch||0)*(body.omega||0),hipVy=body.vy+.24*Math.sin(body.pitch||0)*(body.omega||0);
+    const lengthRate=hipVx*nx+hipVy*ny+body.vz*nz;
     const compression=Math.max(0,restLength-length);
     const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
     // Finite tensile linkage prevents an anchored foot from becoming an infinite reach motor.
@@ -57,7 +59,7 @@ export function createAlternatingFeet({surface}={}){
     force.x+=(magnitude-tension)*nx;force.y+=(magnitude-tension)*ny;force.z+=(magnitude-tension)*nz;
     strutForceTotal+=magnitude;strutPeakForce=Math.max(strutPeakForce,magnitude);
     if(magnitude>0)strutLoadedSteps++;
-    lastStrut={time:body.time,active,length,restLength,compression,lengthRate,magnitude,tension,connected,maxLength,direction:[nx,ny,nz]};
+    lastStrut={time:body.time,hip:[hipX,hipY,body.z],active,length,restLength,compression,lengthRate,magnitude,tension,connected,maxLength,direction:[nx,ny,nz]};
    }
   }
   // Leg actuator loads the body at a hip below its center of mass.
