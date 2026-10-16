@@ -38,7 +38,7 @@ export function createStratigraphy({seed=741,surfaceAt=null}={}){
    const top=surfaceAt?surfaceAt(x,z):1.15+.13*Math.sin(x*.47+seed*.001)*Math.cos(z*.31);
    return sample(x,top-depth,z);
   }));
-  return {schema:'europa-synthetic-map/v0',synthetic:true,depth,columns,rows,cells};
+  return {schema:'europa-synthetic-map/v0',synthetic:true,xStart,xEnd,zStart,zEnd,depth,columns,rows,cells};
  };
  return {sample,crossSection,surfaceMap};
 }
