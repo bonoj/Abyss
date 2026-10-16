@@ -1,40 +1,40 @@
-# Abyss — N disposable worlds, one reliable publisher
+# Abyss — isolated JIT worlds, boring publication
 
-**Repository:** https://github.com/bonoj/Abyss  
-**Canonical origin:** https://bonoj.github.io/Abyss/  
-**Experiment URL:** https://bonoj.github.io/Abyss/<folder>/
+**Source:** https://github.com/bonoj/Abyss  
+**Canonical experiment:** `https://bonoj.github.io/Abyss/<folder>/`
 
-## Conjoiner command
+## One-sentence contract
 
-**“Fling <experiment> into Abyss.”** Clara reads this README and the workflow, writes `<folder>/index.html` plus its assets, commits to `main`, explicitly starts **Publish Abyss** via `workflow_dispatch`, watches the run, and verifies the live URL and deployed SHA. No manual upload or browser-cache ritual.
+**Athanor (or another producer) packages a complete, independently executable world; Abyss publishes the package without changing a byte of its application code.**
 
-**Important: committing does not publish.** The workflow is manual-only, so setup/documentation edits never launch a site. Never describe a commit as deployed. Do not trigger publishing merely to test the infrastructure without instruction.
+The producer owns its dependencies, paths, cache busting, and executable build identity. Abyss owns GitHub Pages delivery, a deployment manifest, and public reachability checks. Third-party pinned CDN imports (e.g. Three.js) are fine. Do not copy only `athanor/` if the world also imports `codex/` and `arcana/`: package the complete dependency closure **inside that experiment folder**, and adjust paths during packaging, before handing it to Abyss.
 
-## Architecture
+## For the Conjoiner
 
-- N isolated experiment directories, each with its own `index.html` and relative assets; e.g. `sparks/index.html`, `terrain/index.html`. No per-experiment workflows or repositories.
-- One workflow: `.github/workflows/pages.yml`. It publishes the whole repository snapshot atomically to one Pages site, so all experiment URLs remain stable.
-- Every publication uses `github.sha` as its source identity. It generates global `/Abyss/build.json`, `/Abyss/pages.json`, and per-experiment `/Abyss/<folder>/build.json`. Never hand-maintain those generated files.
-- HTML references to relative local JS/CSS and relative JS module imports are stamped with `?v=<full commit SHA>`. Use relative asset paths; avoid absolute `/foo` references because Pages is hosted beneath `/Abyss/`.
-- Validation: all referenced local JS/CSS must exist; JS syntax is checked; after deployment, the workflow fetches the global manifest and every experiment's `index.html` and `build.json` and checks expected SHA.
-- Concurrency is serialized. A manual run deploys its selected commit. Don't queue a second deployment until the first has been observed.
+“Fling <world> into Abyss” means Clara should inspect this README, put a complete world at `<folder>/index.html` with all of its own local code and assets inside `<folder>/`, commit, **explicitly dispatch** the Pages workflow, wait for completion, verify the public manifest and the experiment URL, and report the observed SHA. No user uploads, no manual cache clearing, no extra repo per experiment.
 
-## Cache truth and recovery
+A commit **does not** trigger deployment. Deployment requires an explicit workflow dispatch. Setup edits do not launch worlds.
 
-- A commit SHA and verified manifest prove **which build was published**. They do not guarantee a user's browser is displaying fresh HTML: browsers, CDN edges, service workers, and third-party assets have independent caches.
-- For reliable observation, use the canonical experiment URL with a `?v=<observed SHA>` navigation query if needed; ensure local asset URLs are versioned. Do not promise that cache staleness is impossible. Avoid registering service workers in disposable experiments.
-- **Never tell the Conjoiner to clear browser cache as the normal fix.** Diagnose the executing SHA versus expected SHA. If the public manifest is stale, investigate Pages propagation or the workflow; if manifest is current but app is stale, inspect HTML/service-worker/asset caching.
-- If a deploy fails, inspect the exact Actions run and logs, repair the cause, and rerun explicitly. No success claims until the public page and manifest are observed.
-- To restore a prior experiment, revert or restore its known-good commit, commit to `main`, explicitly dispatch the publisher, and verify. Preserve other folders.
-- The repository contains source, not an independent disaster-recovery backup. GitHub Pages settings and secrets are not part of a Git clone.
+## Invariants
 
-## Cold-boot checklist
+- Each experiment is a folder with `index.html`. Nested folders are allowed; each `index.html` is an entry.
+- **No runtime references to Hermeticon's live source or another experiment's files.** All first-party runtime dependencies are inside the experiment's own directory. The producer must enforce this; Abyss does not currently inspect module dependency closure.
+- Abyss's workflow does **not** rewrite HTML, CSS, JS, imports, or URLs. It copies source files verbatim into the Pages artifact, excluding `.git`, `.github`, and generated site files.
+- One workflow publishes all folders as one atomic Pages artifact. Experiment files are not shared, but deployment is shared. Avoid service workers and shared-origin storage in experiments: these can bypass folder isolation.
+- The workflow generates `/Abyss/build.json` and `/Abyss/pages.json` with the **Abyss repository commit SHA** and checks the public manifest and each entry. These are *publication identity*, not necessarily the Athanor package's original build SHA.
+- **Cache busting is a producer responsibility.** Packaged HTML and its module graph should already carry a pinned build identity. GitHub Pages/CDN/browser HTML caching can still be stale; verify the executing build, not merely a successful workflow.
+- JS syntax is checked during publication. The workflow verifies that each HTML entry is publicly reachable; it does **not** certify that the application boots, that all dependencies resolve, or that runtime isolation is complete.
+- If no experiment folder exists, manual publication intentionally fails instead of publishing an empty site.
+
+## Clara cold boot
 
 1. Read this README and `.github/workflows/pages.yml`.
-2. Find the requested experiment folder or create it; keep other experiments intact.
-3. Change source only; preserve publisher and generated-file contract.
-4. Commit to `main`. **Only publish if requested.**
-5. When publishing, explicitly dispatch the workflow on `main`; wait for completion and verify `pages.json`, per-folder `build.json`, and the page.
-6. Report the exact URL, 8-character SHA, and verified state. If verification is incomplete, say so.
+2. Package the requested world into its own directory; include the entire first-party dependency closure and validate relative paths. Preserve all other experiment folders.
+3. Inspect for first-party imports crossing outside the experiment folder; avoid service workers and shared storage. Keep third-party imports version-pinned.
+4. Commit to `main`. **Do not dispatch unless asked to publish.**
+5. When asked to publish, dispatch `Publish Abyss` on `main`, observe completion, fetch `/Abyss/pages.json?verify=<sha>` and the experiment's URL, and independently verify runtime build identity.
+6. Report canonical URL, source/package SHA, Abyss publication SHA, and verified outcome. If runtime verification is unavailable, say so.
 
-The root `index.html` is an optional placeholder/landing page. Experiments live in separate folders. **The workflow requires at least one experiment folder before a publication can succeed.**
+## Recovery
+
+Restore the desired experiment's known-good package from Git history, commit, explicitly dispatch, and verify. Do not reset or overwrite unrelated experiments. Abyss is not an independent backup of Hermeticon.
