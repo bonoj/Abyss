@@ -6,7 +6,7 @@ import {createEdgeDetection} from '../arcana/edge-detection.js';
 // Never display the inherited JIT source revision as the current build.
 let BUILD='unverified';
 try {
- const response=await fetch(new URL('../build.json',import.meta.url),{cache:'no-store'});
+ const response=await fetch(new URL('../../build.json',import.meta.url),{cache:'no-store'});
  if(!response.ok)throw Error('Build metadata HTTP '+response.status);
  const info=await response.json();
  if(!/^[0-9a-f]{40}$/.test(info.sha))throw Error('Invalid deployment SHA');
