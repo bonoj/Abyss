@@ -16,6 +16,7 @@ if(europa){
  globalThis.europaMapJSON=options=>world.europaMap(options);
  globalThis.europaProfileJSON=(x,z)=>world.europaProfile(x,z);
  globalThis.europaSiteJSON=(x,z)=>world.europaSite(x,z);
+ globalThis.europaCompareJSON=sites=>world.compareSites(sites);
 }
 
 if(europa){
@@ -34,9 +35,12 @@ if(europa){
  legend.style.cssText='font:11px/1.5 system-ui;margin-top:8px';
  const mode=document.createElement('button');mode.textContent='MAP / SECTION';let mapMode=false,siteX=0,siteZ=0;
  const site=document.createElement('div');site.style.cssText='font:12px system-ui;margin:8px 0';
+ const compare=document.createElement('button');compare.textContent='COMPARE SITES';
+ const comparison=document.createElement('div');comparison.style.cssText='font:11px/1.5 system-ui;white-space:pre-wrap;margin:8px 0';
+ compare.onclick=()=>{const results=world.compareSites([{x:-3.1,z:2.2},{x:5,z:-3}]);comparison.textContent=results.map(r=>'('+r.x+', '+r.z+') · lens '+(r.transportedLens?'YES':'NO')+' · solute proxy '+r.meanSoluteProxy.toFixed(3)).join('\n')+'\nSynthetic hypotheses only; no cores extracted.'};
  mode.onclick=()=>{mapMode=!mapMode;render()};
  const close=document.createElement('button');close.textContent='CLOSE';close.onclick=()=>{panel.hidden=true};
- panel.append(heading,canvas,site,legend,mode,close);document.body.append(panel);
+ panel.append(heading,canvas,site,legend,mode,compare,comparison,close);document.body.append(panel);
  const colors={'radiolytic-skin':'#9ce6fc','reworked-ice':'#48a9b3','inherited-ice':'#7167b6','transported-lens':'#e3b35e'};
  const render=()=>{
   const section=mapMode?world.europaMap({columns:81,rows:42,depth:.15}):world.europaSection({x:siteX,columns:81,rows:42});
