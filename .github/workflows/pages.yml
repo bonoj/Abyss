@@ -43,6 +43,29 @@ jobs:
           (site/'pages.json').write_text(json.dumps({'sha':sha,'pages':folders},separators=(',',':'))+'\n')
           print('UNMODIFIED EXPERIMENTS',folders,'SOURCE SHA',sha)
           PY
+      - name: Bundle the complete Shell module graph
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          # Every local JS import is resolved into one immutable artifact.
+          # External CDN imports remain external; no local source module is loaded by the browser.
+          npm install --no-save --no-package-lock esbuild@0.25.12
+          mkdir -p site/shell/assets
+          ./node_modules/.bin/esbuild shell/main.js --bundle --format=esm --platform=browser --target=es2022 --external:https://* --outfile="site/shell/assets/main.${BUILD_SHA}.js"
+          python3 - <<'PY'
+          import os,pathlib,re
+          sha=os.environ['BUILD_SHA']
+          asset=pathlib.Path('site/shell/assets/main.'+sha+'.js')
+          bundle=asset.read_text()
+          assert len(bundle)>1000,'Bundle suspiciously small'
+          assert not re.search(r'(?:from\\s*|import\\s*\\()\\s*[\\x22\\x27]\\.{1,2}/',bundle),'Unbundled local import'
+          # Legacy cached Shell HTML imports main.js?build=SHA; preserve that
+          # contract, but make the entry an immutable bundle loader.
+          pathlib.Path('site/shell/main.js').write_text('import \\'./assets/main.'+sha+'.js\\';\\n')
+          # Assert the desired experiment is actually in the compiled artifact.
+          assert 'flatlandia' in bundle,'Flatlandia absent from executable bundle'
+          print('BUNDLED',asset,len(bundle),'bytes; no local module fetches')
+          PY
       - name: Check packaged JavaScript syntax
         run: |
           find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
