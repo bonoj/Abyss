@@ -719,3 +719,14 @@ Inspector must report: executing SHA, FPS, fixed-step count; body COM/velocity/p
 **Explicit exclusions:** hardcoded \`forceX=-4\` world propulsion; fixed stroke-clock gait as locomotion authority; body-following feet; teleporting foot anchors; pitch clamps; magic normal forces; body COM suspension; invisible righting impulses; a second integrator; gratuitous GPU/FPS optimization while ≥55. Existing code remains intact until Turn A is intentionally implemented and witnessed.
 
 **Next action:** implement Turn A only, then obtain executing browser SHA and a rest/equilibrium observation before authorizing gait.
+
+
+### BF. Turn A implementation — N-limb standing fixture (2026-10-16)
+
+**Source commits:** `b330946d` adds `shell/arcana/locomotion/contact-limbs.js`, an array-based N-limb passive axial contact model; `ce507339` instantiates it in Entropy with N=2 instead of the old alternating-foot motor; `e851566d` adds an optional `initialClearance` to the unchanged 120 Hz kinetic body constructor, configured to 1.08 for the standing fixture. The old alternating-feet module remains in Arcana but is not instantiated.
+
+Each limb has a distinct body-local hip and a distinct terrain-sampled contact at the corresponding x offset. Each fixed step computes hip kinematics, reach, compression, damping, finite axial reaction, a unilateral positive ground normal, and a friction-cone check. Forces and hip moments are summed into the original rigid-body integrator. The fixture has **no gait**, world-x motor, automatic foot repositioning, pitch clamp, or COM teleport. Inspector exposes per-limb state/forces and aggregate gravity wrench residual.
+
+**Important limitations, not hidden:** this is a deliberately minimal *compliant axial* model, not yet a general contact-constraint solver. It does not solve coupled friction reactions, account for terrain slope normals, or permit actuated lateral leg forces; if the passive two-leg fixture cannot remain upright, the correct next step is to diagnose its witnessed wrench and stability, not to claim equilibrium. The current startup clearance of 1.08 places each initial hip 0.84 above its corresponding foot, matching the spring rest length before gravity creates compression. Under m=1 and g=9.8, symmetric standing compression is approximately 9.8/(2*180)=0.0272, so COM can settle near ground+1.053 if the dynamics permit.
+
+**Status:** source committed, browser execution and equilibrium **not yet witnessed**. Next: verify executing SHA, FPS, two actual positive support reactions, net force/gravity residual, pitch and omega over time, torso collision events, and any drift. Do not proceed to stepping until rest is observed or a specific mechanical deficiency is identified.
