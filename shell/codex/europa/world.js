@@ -13,7 +13,12 @@ export function createEuropa(){
  const terrain=createTerrain({topology:'atlas'});
  world.content.add(terrain.group);
  const ledger=createMaterialLedger(terrain.inventoryNodes());
- const stratigraphy=createStratigraphy();
+ const stratigraphy=createStratigraphy({surfaceAt:(x,z)=>{
+  const {fields,resolution:[w,h],halfExtent}=terrain.atlas;
+  const ix=Math.max(0,Math.min(w-1,Math.round((x/halfExtent+1)*(w-1)/2)));
+  const iz=Math.max(0,Math.min(h-1,Math.round((z/halfExtent+1)*(h-1)/2)));
+  return fields.elevation[ix+w*iz];
+ }});
  world.europaSection=options=>{
   const section=stratigraphy.crossSection(options);
   section.occupancy=section.cells.map((row,j)=>row.map((_,i)=>{
@@ -23,7 +28,18 @@ export function createEuropa(){
   }));
   return section;
  };
- world.europaMap=options=>stratigraphy.surfaceMap(options);
+ world.europaMap=options=>{
+  const map=stratigraphy.surfaceMap(options);
+  const {xStart,xEnd,zStart,zEnd,columns,rows,depth}=map;
+  map.occupancy=map.cells.map((row,j)=>row.map((_,i)=>{
+   const x=xStart+(xEnd-xStart)*i/(columns-1),z=zStart+(zEnd-zStart)*j/(rows-1);
+   const {fields,resolution:[w,h],halfExtent}=terrain.atlas;
+   const ix=Math.max(0,Math.min(w-1,Math.round((x/halfExtent+1)*(w-1)/2)));
+   const iz=Math.max(0,Math.min(h-1,Math.round((z/halfExtent+1)*(h-1)/2)));
+   return terrain.sample(x,fields.elevation[ix+w*iz]-depth,z)>0;
+  }));
+  return map;
+ };
  world.europaProfile=(x=0,z=0)=>Array.from({length:25},(_,i)=>stratigraphy.sample(x,1.5-i*.125,z));
  const extractions=[];
  world.extractTestCore=(options={x:0,z:0,radius:.8,yTop:3.6,yBottom:-3.6},recoveryFraction=1)=>{
