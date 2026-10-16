@@ -5,12 +5,12 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
  let anchor=null,phase='awaiting support',forceX=0,plantCount=0,poweredSteps=0;
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
  let swingTarget=null,swingFrom=null,swingProgress=0,swingCount=0,releaseCount=0,failedPlants=0;
- const strokeEnd=reach*.72,lead=reach*.55,swingRate=2.2;
+ const strokeEnd=reach*.42,lead=reach*.55,swingRate=2.2;
  function sample(body,{dt,acceleration,contact,holdStance=false}){
   forceX=0;
   if(!contact?.supported){unsupportedSteps++;if(phase!=='swing')phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
   if(phase==='swing')return {x:0,y:0,z:0};
-  if(!anchor){anchor={x:body.x,y:body.y-.18,z:body.z};plantCount++}
+  if(!anchor){anchor={x:body.x,y:surface?.(body.x,body.z)??body.y-.18,z:body.z};plantCount++}
   extension=Math.hypot(body.x-anchor.x,body.z-anchor.z);
   if(extension>=strokeEnd&&!holdStance){
    swingFrom=anchor;swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
