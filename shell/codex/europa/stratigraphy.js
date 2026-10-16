@@ -29,5 +29,14 @@ export function createStratigraphy({seed=741}={}){
   }cells.push(row)}
   return {schema:'europa-cross-section/v0',synthetic:true,x,zStart,zEnd,yTop,yBottom,columns,rows,cells};
  };
- return {sample,crossSection};
+ const surfaceMap=({xStart=-8,xEnd=8,zStart=-8,zEnd=8,columns=41,rows=41,depth=0.15}={})=>{
+  if(![xStart,xEnd,zStart,zEnd,depth].every(Number.isFinite)||xStart>=xEnd||zStart>=zEnd||depth<0||!Number.isInteger(columns)||!Number.isInteger(rows)||columns<2||rows<2||columns>256||rows>256)throw Error('invalid map');
+  const cells=Array.from({length:rows},(_,j)=>Array.from({length:columns},(_,i)=>{
+   const x=xStart+(xEnd-xStart)*i/(columns-1),z=zStart+(zEnd-zStart)*j/(rows-1);
+   const top=1.15+.13*Math.sin(x*.47+seed*.001)*Math.cos(z*.31);
+   return sample(x,top-depth,z);
+  }));
+  return {schema:'europa-synthetic-map/v0',synthetic:true,depth,columns,rows,cells};
+ };
+ return {sample,crossSection,surfaceMap};
 }
