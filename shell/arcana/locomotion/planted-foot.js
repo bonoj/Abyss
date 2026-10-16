@@ -6,13 +6,13 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
  let extension=0,maxViolation=0,correctionTotal=0,radialImpulseTotal=0,unsupportedSteps=0;
  let swingTarget=null,swingFrom=null,swingProgress=0,swingCount=0,releaseCount=0,failedPlants=0;
  const strokeEnd=reach*.72,lead=reach*.55,swingRate=2.2;
- function sample(body,{dt,acceleration,contact}){
+ function sample(body,{dt,acceleration,contact,holdStance=false}){
   forceX=0;
   if(!contact?.supported){unsupportedSteps++;if(phase!=='swing')phase=anchor?'suspended':'airborne';return {x:0,y:0,z:0}}
   if(phase==='swing')return {x:0,y:0,z:0};
   if(!anchor){anchor={x:body.x,y:body.y-.18,z:body.z};plantCount++}
   extension=Math.hypot(body.x-anchor.x,body.z-anchor.z);
-  if(extension>=strokeEnd){
+  if(extension>=strokeEnd&&!holdStance){
    swingFrom=anchor;swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
    anchor=null;phase='swing';releaseCount++;
    return {x:0,y:0,z:0};
@@ -50,7 +50,12 @@ export function createPlantedFoot({mass=1,force=4,reach=.9,surface}={}){
   if(outward>0){body.vx-=nx*outward;body.vz-=nz*outward;radialImpulseTotal+=mass*outward;}
   extension=reach;phase='taut';
  }
+ function release(body){
+  if(!anchor)return false;
+  swingFrom=anchor;swingTarget={x:body.x-lead,z:body.z};swingProgress=0;
+  anchor=null;phase='swing';releaseCount++;return true;
+ }
  function retire(){anchor=null;swingTarget=null;swingFrom=null;phase='retired';forceX=0;}
  function inspect(){return {name:'planted foot',mode:'stance / unloaded swing / terrain replant',phase,anchor,swingTarget,swingProgress,strokeEnd,reach,extension,maxPreCorrectionViolation:maxViolation,correctionTotal,radialImpulseTotal,plantCount,swingCount,releaseCount,failedPlants,poweredSteps,unsupportedSteps,forceX}}
- return {sample,constrain,retire,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||(swingFrom&&swingTarget?{x:swingFrom.x+(swingTarget.x-swingFrom.x)*swingProgress,y:swingFrom.y+Math.sin(Math.PI*swingProgress)*.25,z:swingFrom.z+(swingTarget.z-swingFrom.z)*swingProgress}:null)};
+ return {sample,constrain,release,retire,inspect,getAnchor:()=>anchor,getFoot:()=>anchor||(swingFrom&&swingTarget?{x:swingFrom.x+(swingTarget.x-swingFrom.x)*swingProgress,y:swingFrom.y+Math.sin(Math.PI*swingProgress)*.25,z:swingFrom.z+(swingTarget.z-swingFrom.z)*swingProgress}:null)};
 }
