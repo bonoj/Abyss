@@ -1,12 +1,13 @@
 import {createPlantedFoot} from './planted-foot.js';
-// Two independent anchors; one loaded stance at a time.
+// Two independent planted anchors and two load-bearing struts.
 // A handoff happens on release, not on an elapsed gait clock.
 export function createAlternatingFeet({surface}={}){
- const feet=[createPlantedFoot({surface}),createPlantedFoot({surface})];
+ const feet=[createPlantedFoot({surface,offsetX:-.18}),createPlantedFoot({surface,offsetX:.18})];
+ const hips=[-.12,.12]; // body-local x offsets; shared body-local y=-.24
  const groundContact={supported:true,normal:{x:0,y:1,z:0},friction:.86,source:'planted-foot'};
  let active=0,handoffs=0,unsupportedHandoffs=0,dualSwingSteps=0,dualSwing=false,groundedHandoffs=0,unplantedHandoffs=0,heldSteps=0,loadShares=[0,0],doubleSupportSteps=0,singleSupportSteps=0,noFootSupportSteps=0,loadTransferCount=0,lastLoaded=-1,verticalImpulseTotal=0,verticalSupportSteps=0,verticalSupportLostSteps=0,verticalCorrectionTotal=0,lastVerticalImpulse=0;
  let connectedSteps=0,disconnectedSteps=0,tensileSteps=0,peakTension=0;
- let strutForceTotal=0,strutPeakForce=0,strutLoadedSteps=0,lastStrut=null;
+ let strutForceTotal=0,strutPeakForce=0,strutLoadedSteps=0,lastStrut=null,lastLegs=[],lastWrench=null,connectedSupportSteps=0,noConnectedSupportSteps=0;
  let geometrySteps=0,overextendedSteps=0,maxHorizontal=0,maxVerticalCorrection=0,largeCorrectionCount=0,lastGeometry=null;
  const geometryEvents=[];
  function sample(body,context){
@@ -36,43 +37,58 @@ export function createAlternatingFeet({surface}={}){
    }
   }
   if(feet[active].inspect().phase!=='swing')dualSwing=false;
-  const stance=feet[active].getAnchor()||feet.find(f=>f.getAnchor())?.getAnchor();
-  lastStrut=null;
-  if(stance){
-   const hipX=body.x-.24*Math.sin(body.pitch||0),hipY=body.y-.24*Math.cos(body.pitch||0);
-   const dx=hipX-stance.x,dy=hipY-stance.y,dz=body.z-stance.z;
-   const length=Math.hypot(dx,dy,dz),restLength=.84,stiffness=180,damping=20,maxForce=80;
-   if(length>1e-8){
-    const nx=dx/length,ny=dy/length,nz=dz/length;
-    const hipVx=body.vx-.24*Math.cos(body.pitch||0)*(body.omega||0),hipVy=body.vy+.24*Math.sin(body.pitch||0)*(body.omega||0);
-    const lengthRate=hipVx*nx+hipVy*ny+body.vz*nz;
-    const compression=Math.max(0,restLength-length);
-    const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
-    // Finite tensile linkage prevents an anchored foot from becoming an infinite reach motor.
-    const maxLength=1.04,tensionStiffness=240,tensionDamping=24,maxTension=100;
-    const tension=Math.min(maxTension,Math.max(0,tensionStiffness*Math.max(0,length-maxLength)+ (length>restLength?tensionDamping*Math.max(0,lengthRate):0)));
-    const connected=length<=maxLength;
-    if(connected)connectedSteps++;else disconnectedSteps++;
-    if(tension>0){tensileSteps++;peakTension=Math.max(peakTension,tension);}
-    // Stance drive is transmitted only through a connected leg, not by anchor ownership.
-    if(!connected){force.x=0;force.y=0;force.z=0;}
-    force.x+=(magnitude-tension)*nx;force.y+=(magnitude-tension)*ny;force.z+=(magnitude-tension)*nz;
-    strutForceTotal+=magnitude;strutPeakForce=Math.max(strutPeakForce,magnitude);
-    if(magnitude>0)strutLoadedSteps++;
-    lastStrut={time:body.time,hip:[hipX,hipY,body.z],active,length,restLength,compression,lengthRate,magnitude,tension,connected,maxLength,direction:[nx,ny,nz]};
+  // Each planted leg contributes its own force and moment at its own rotated hip.
+  // Existing motor belongs to the active leg only; it is not duplicated.
+  const motor={x:force.x,y:force.y,z:force.z};
+  const total={x:0,y:0,z:0,torque:0};
+  lastLegs=[];
+  const pitch=body.pitch||0,omega=body.omega||0,cs=Math.cos(pitch),sn=Math.sin(pitch);
+  for(let i=0;i<2;i++){
+   const anchor=feet[i].getAnchor(),hx=hips[i],hy=-.24;
+   const rx=hx*cs-hy*sn,ry=hx*sn+hy*cs;
+   const hip={x:body.x+rx,y:body.y+ry,z:body.z};
+   const leg={index:i,anchor:anchor?{...anchor}:null,hip:[hip.x,hip.y,hip.z],connected:false,force:[0,0,0],torque:0};
+   if(anchor){
+    const dx=hip.x-anchor.x,dy=hip.y-anchor.y,dz=hip.z-anchor.z;
+    const length=Math.hypot(dx,dy,dz),restLength=.84,stiffness=180,damping=20,maxForce=80,maxLength=1.04;
+    leg.length=length;leg.maxLength=maxLength;
+    if(length>1e-8){
+     const nx=dx/length,ny=dy/length,nz=dz/length;
+     const hipVx=body.vx+omega*ry,hipVy=body.vy-omega*rx;
+     const lengthRate=hipVx*nx+hipVy*ny+body.vz*nz;
+     const compression=Math.max(0,restLength-length);
+     const magnitude=Math.min(maxForce,Math.max(0,stiffness*compression-damping*lengthRate));
+     const tension=Math.min(100,Math.max(0,240*Math.max(0,length-maxLength)+(length>restLength?24*Math.max(0,lengthRate):0)));
+     const connected=length<=maxLength;
+     leg.connected=connected;leg.lengthRate=lengthRate;leg.compression=compression;
+     // A detached leg cannot transmit spring, tether or motor force.
+     const axial=connected?magnitude-tension:0;
+     let fx=axial*nx,fy=axial*ny,fz=axial*nz;
+     if(i===active&&connected){fx+=motor.x;fy+=motor.y;fz+=motor.z;}
+     leg.force=[fx,fy,fz];leg.torque=ry*fx-rx*fy;
+     leg.magnitude=connected?magnitude:0;leg.tension=connected?tension:0;
+     leg.direction=[nx,ny,nz];
+     total.x+=fx;total.y+=fy;total.z+=fz;total.torque+=leg.torque;
+     if(connected){connectedSteps++;if(magnitude>0)strutLoadedSteps++;strutForceTotal+=magnitude;strutPeakForce=Math.max(strutPeakForce,magnitude);}
+     else disconnectedSteps++;
+     if(connected&&tension>0){tensileSteps++;peakTension=Math.max(peakTension,tension);}
+    }
    }
+   lastLegs.push(leg);
   }
-  // Leg actuator loads the body at a hip below its center of mass.
-  // Planar torque follows the same force; no authored fall trigger.
-  const hipOffset=.24,hipX=-hipOffset*Math.sin(body.pitch||0),hipY=-hipOffset*Math.cos(body.pitch||0);
-  force.torque=hipY*force.x-hipX*force.y;
-  return force;
+  const supporting=lastLegs.filter(l=>l.connected).length;
+  if(supporting)connectedSupportSteps++;else noConnectedSupportSteps++;
+  lastStrut=lastLegs[active]||null;
+  lastWrench={force:[total.x,total.y,total.z],torque:total.torque,connectedLegs:supporting};
+  return total;
  }
- function hasFootSupport(){return feet.some(f=>!!f.getAnchor())&&!!lastStrut?.connected;}
+ function hasFootSupport(){return lastLegs.some(l=>l.connected);}
  function constrain(body,context){
   const planted=feet.map(f=>!!f.getAnchor());
   const count=planted.filter(Boolean).length;
-  loadShares=planted.map(v=>v?1/count:0);
+  const loads=lastLegs.map(l=>Math.hypot(...l.force));
+  const totalLoad=loads.reduce((a,b)=>a+b,0);
+  loadShares=loads.map(v=>totalLoad>0?v/totalLoad:0);
   if(count===2)doubleSupportSteps++;
   else if(count===1)singleSupportSteps++;
   else noFootSupportSteps++;
@@ -95,9 +111,9 @@ export function createAlternatingFeet({surface}={}){
   }else verticalSupportLostSteps++;
   feet.forEach((foot,i)=>{
    // Swing proceeds independently; only the loaded stance may constrain body.
-   if(i===active||foot.inspect().phase==='swing')foot.constrain(body,{...context,supported:context.supported||feet.some(f=>!!f.getAnchor()),skipTether:true});
+   foot.constrain(body,{...context,supported:context.supported||feet.some(f=>!!f.getAnchor()),skipTether:true});
   });
  }
- function inspect(){return {name:'alternating feet',mode:'finite-force unilateral compliant strut; single stance drive',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,connectedSteps,disconnectedSteps,tensileSteps,peakTension,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
+ function inspect(){return {name:'alternating feet',mode:'two independent finite-force struts; single stance motor',active,handoffs,unsupportedHandoffs,dualSwingSteps,groundedHandoffs,unplantedHandoffs,heldSteps,loadShares,doubleSupportSteps,singleSupportSteps,noFootSupportSteps,loadTransferCount,connectedSupportSteps,noConnectedSupportSteps,legs:lastLegs,wrench:lastWrench,strut:{restLength:.84,stiffness:180,damping:20,maxForce:80,loadedSteps:strutLoadedSteps,connectedSteps,disconnectedSteps,tensileSteps,peakTension,peakForce:strutPeakForce,forceTotal:strutForceTotal,last:lastStrut},geometry:{steps:geometrySteps,overextendedSteps,maxHorizontal,maxVerticalCorrection,largeCorrectionCount,last:lastGeometry,recentEvents:geometryEvents},verticalImpulseTotal,verticalSupportSteps,verticalSupportLostSteps,verticalCorrectionTotal,lastVerticalImpulse,feet:feet.map(f=>f.inspect())}}
  return {sample,constrain,hasFootSupport,inspect,getFeet:()=>feet.map(f=>f.getFoot())};
 }
