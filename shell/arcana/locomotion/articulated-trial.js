@@ -20,7 +20,7 @@ export function createArticulatedTrial(T,{parent,surface,actor,offset}){
   if(previous){const dx=p.x-previous.x,dz=p.z-previous.z;if(Math.hypot(dx,dz)>.001)heading=Math.atan2(dz,dx)}
   const moving=!!p.target||p.travelSpeed>.05;
   const forward={x:Math.cos(heading),z:Math.sin(heading)},lateral={x:-forward.z,z:forward.x};
-  const body={x:p.x-o.x,y:p.centerY,z:p.z-o.z};
+  const body={x:p.x-o.x,y:p.y+.72,z:p.z-o.z};
   torso.position.set(body.x,body.y,body.z);torso.scale.set(.23,.18,.30);
   for(const leg of legs){
    const root={x:body.x+lateral.x*leg.side*.16,y:body.y-.08,z:body.z+lateral.z*leg.side*.16};
