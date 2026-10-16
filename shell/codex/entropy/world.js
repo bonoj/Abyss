@@ -1,6 +1,6 @@
 // Entropy is an authored composition, not a reusable Arcana definition.
 import {createHermeticon} from '../../arcana/hermeticon.js';
-import {createTerrain} from '../../arcana/terrain.js?v=stable-20bd541b-restore';
+import {createTerrain} from '../../arcana/terrain.js?v=flatlandia-1736f0e8';
 import {createTerrainSurfaceQuery} from '../../arcana/terrain-surface-query.js';
 import {createNodeMaker} from '../../arcana/node-maker.js?v=1';
 import {createWanderer} from '../../arcana/wanderer.js';
