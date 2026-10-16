@@ -20,7 +20,7 @@ export function createKineticBody({surface,x=1.3,z=0,radius=.18,gravity,contact,
   const wasSupported=s.contact;
   const result=contact.resolve(s,{radius,dt:step,acceleration,activeDrive});
   if(result.penetration)s.maxCorrection=Math.max(s.maxCorrection,result.penetration);
-  if(actuator?.constrain)actuator.constrain(s,{dt:step});
+  if(actuator?.constrain)actuator.constrain(s,{dt:step,supported:result.supported});
   s.contact=result.supported;
   activeContact=result.supported?{supported:true,normal:result.contactObservation.normal,friction:result.hit.friction}:null;
   if(result.contactObservation){lastContact=result.contactObservation;if(Math.abs(lastContact.normal.y)<0.5)wallContacts++;}
