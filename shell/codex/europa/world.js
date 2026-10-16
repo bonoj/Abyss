@@ -41,6 +41,8 @@ export function createEuropa(){
   return map;
  };
  world.europaProfile=(x=0,z=0)=>Array.from({length:25},(_,i)=>stratigraphy.sample(x,1.5-i*.125,z));
+ world.europaSite=(x=0,z=0)=>({x,z,profile:world.europaProfile(x,z),
+  surface:stratigraphy.sample(x,1.15,z),hypothesisOnly:true});
  const extractions=[];
  world.extractTestCore=(options={x:0,z:0,radius:.8,yTop:3.6,yBottom:-3.6},recoveryFraction=1)=>{
   if(!Number.isFinite(recoveryFraction)||recoveryFraction<0||recoveryFraction>1)throw Error('invalid recovery fraction');
@@ -71,7 +73,9 @@ export function createEuropa(){
    topology:'atlas',terrain:terrain.inspect(),
    materialCalibration:false,sampleCount:extractions.length,excavationEnabled:true,
    materialAccounting:ledger.inspect(),lastExtraction:extractions.at(-1)||null,
-   stratigraphy:{schema:'synthetic-stratigraphy/v0',source:'independent illustrative field',coupledToExcavation:true,profile:world.europaProfile()},
+   stratigraphy:{schema:'synthetic-stratigraphy/v0',source:'synthetic hypotheses on terrain elevation',coupledToExcavation:true,
+    units:['radiolytic-skin','reworked-ice','inherited-ice','transported-lens'],
+    selectedSite:{x:0,z:0},profileAvailable:true},
    caveat:'Existing terrain material IDs are not Europan chemical species'}});
  world.update=()=>{};
  world.attachView=()=>{};
