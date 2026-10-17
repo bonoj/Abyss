@@ -5,6 +5,7 @@ import {createTerrain} from '../../arcana/terrain.js';
 import {createMaterialLedger} from './material-ledger.js';
 import {createStratigraphy} from './stratigraphy.js';
 import {allocateRecoveredParcels,recoveredIntervals} from './parcel-recovery.js';
+import {observeRecoveredCore,compareObservableCores} from './observable-core.js';
 
 export function createEuropa(){
  const world=createHermeticon();
@@ -47,6 +48,7 @@ export function createEuropa(){
   surface:stratigraphy.sample(x,surfaceAt(x,z),z),surfaceElevation:surfaceAt(x,z),hypothesisOnly:true});
  const extractions=[];
  let pairedTrial=null;
+ let blindTrial=null;
  world.compareSites=(sites=[{x:-3.1,z:2.2},{x:5,z:-3}])=>sites.map(({x,z})=>{
   const profile=world.europaProfile(x,z);
   const counts={};for(const cell of profile)counts[cell.unit]=(counts[cell.unit]||0)+1;
@@ -91,6 +93,13 @@ export function createEuropa(){
     lensDetected:!!counts['transported-lens'],ledgerBalanced:core.balanced,
     provenanceAccountingMatches:core.provenanceAccountingMatches,inventoryMatchesTerrain:core.inventoryMatchesTerrain};
   });
+  // Instrument reads only recovered geometry/material; geological truth remains for post-hoc scoring.
+  const observedCores=extractions.map((core,i)=>observeRecoveredCore(core.parcels,{seed:741+i,noiseSigma:.02,missingFraction:.1,contaminationFraction:.05}));
+  const comparison=compareObservableCores(observedCores[0],observedCores[1]);
+  blindTrial={schema:'europa-blind-observation/v1',synthetic:true,calibrated:false,
+   channel:'GENERIC_MATERIAL_CONTRAST',cores:observedCores.map((o,i)=>({siteIndex:i,attempted:o.attempted,observed:o.observed,settings:o.settings})),
+   comparison,truthUsedForInference:false,
+   caveat:'Descriptive generic material contrast only; no geological-origin classification'};
   pairedTrial={schema:'europa-paired-core-trial/v1',synthetic:true,calibrated:false,
    warning:'Recovered parcels match generic-material ledger counts; provenance remains synthetic and uncalibrated',
    trials,discriminated:trials[0].lensDetected&&!trials[1].lensDetected,
@@ -98,6 +107,7 @@ export function createEuropa(){
   return pairedTrial;
  };
  world.pairedTrial=()=>pairedTrial;
+ world.blindTrial=()=>blindTrial;
  const originalInspect=world.inspect.bind(world);
  world.inspect=()=>({name:'Europa',shell:originalInspect(),
   experiment:{schema:'europa-world/v0',status:'authoritative lattice-node extraction, no physical calibration',
@@ -110,7 +120,7 @@ export function createEuropa(){
     recoveredIntervals:extractions.at(-1).recoveredCore.intervals,
     provenanceAccountingMatches:extractions.at(-1).provenanceAccountingMatches,
     inventoryMatchesTerrain:extractions.at(-1).inventoryMatchesTerrain}:null,
-   pairedTrial,
+   pairedTrial,blindTrial,
    stratigraphy:{schema:'synthetic-stratigraphy/v0',source:'synthetic hypotheses on terrain elevation',coupledToExcavation:true,
     units:['radiolytic-skin','reworked-ice','inherited-ice','transported-lens'],
     selectedSite:{x:0,z:0},profileAvailable:true},
