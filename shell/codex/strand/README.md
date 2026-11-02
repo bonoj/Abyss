@@ -43,3 +43,16 @@ Strand is the quiet, natural-world branch of Abyss: an ancient temperate landsca
 - Latest landscape integration commit at time of writing: `e8ff303a8e789b994a3a615885b80a24ff575234` (recheck branch head).
 - **No verified browser rendering or visual acceptance yet.** Do not treat source readback as runtime verification.
 - Immediate objective: inspect and iterate the first ancient temperate landscape, keeping existing physics intact.
+
+## Strand write reliability experiment
+
+Keep this procedure local to Strand while evaluating it; do not change Gate or shared machinery.
+
+1. Read the current Strand source and its blob SHA. Prepare the intended change and validate syntax and imports before writing.
+2. Use the normal GitHub file update with the current SHA. Read back the exact file and compare it with the intended content.
+3. Classify failures: GitHub API errors (conflict, permissions, path), tool-level safety blocks, or deployment/runtime failures. Record which stage actually failed. A safety block is not evidence that GitHub rejected the content.
+4. For ordinary recoverable GitHub failures, refresh the SHA, resolve conflicts, or use authorized Git Data operations when appropriate. Do not disguise or route around an explicit safety restriction.
+5. Commit only coherent changes. Confirm the branch head, then separately check Pages publication and browser execution. Preserve a rollback reference.
+6. Keep a concise record here of attempted writes, method, result, and any verified cause. Do not treat a failed attempt as a committed change.
+
+**Initial observation (2026-11-02):** A proposed Strand terrain shader update through the normal file-update operation was blocked by a tool-level safety check. No commit was returned. The exact trigger is unknown; other Sanctum updates succeeded. Next test: a small documentation-only update (this section), followed by a minimal Strand-only source change if accepted.
