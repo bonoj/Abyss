@@ -8,6 +8,7 @@ import {createCinderfall} from '../../arcana/spells/cinderfall.js';
 import {createMaterialSurvey} from '../../arcana/observation/material-survey.js';
 import {createTemperateLandscape} from './temperate-landscape.js';
 import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
+// Strand shader experiment: keep visual treatments local to this world.
 export function createStrand(){
  const world=createHermeticon();world.group.name='Strand';world.content.name='Strand contents';world.group.add(world.content);
  const terrain=createTerrain({topology:'atlas'});world.content.add(terrain.group);world.observationTargets=()=>({terrain:terrain.group});
