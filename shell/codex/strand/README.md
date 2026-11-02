@@ -2,7 +2,7 @@
 
 **Entry:** [Strand in Shell](https://bonoj.github.io/Abyss/shell/?world=strand)  
 **Composition:** [world.js](world.js)  
-**Landscape:** [temperate-landscape.js](temperate-landscape.js)  
+**Geology shader:** [strand-geology.js](strand-geology.js)  
 **Host:** [../../main.js](../../main.js)  
 **Abyss cold boot:** [../../../README.md](../../../README.md)  
 **Shell handoff:** [../../HANDOFF.md](../../HANDOFF.md)  
@@ -56,3 +56,10 @@ Keep this procedure local to Strand while evaluating it; do not change Gate or s
 6. Keep a concise record here of attempted writes, method, result, and any verified cause. Do not treat a failed attempt as a committed change.
 
 **Initial observation (2026-11-02):** A proposed Strand terrain shader update through the normal file-update operation was blocked by a tool-level safety check. No commit was returned. The exact trigger is unknown; other Sanctum updates succeeded. Next test: a small documentation-only update (this section), followed by a minimal Strand-only source change if accepted.
+
+## Shader experiment — 2026-11-02
+
+- Replaced the decorative-cover import with a Strand-only terrain shader. Existing signed-field triangles, collision, impacts, debris and shared Arcana source remain untouched. The old `temperate-landscape.js` remains in Git history/source but is no longer mounted.
+- Runtime palette uses elevation and triangle derivative orientation for slate, ochre, green and mineral tones. No decorative cover meshes are created.
+- Small source writes succeeded: composition switch `42406bb7`, scaffold `b4fa6752`, shader `3f037885`, newline fix `541abfed`. These demonstrate smaller writes can succeed; they do not prove why the earlier larger write was blocked.
+- **Source committed and read back; browser rendering and Pages deployment not verified.** Inspect GLSL compilation, terrain visibility, palette and aperture clipping before claiming success.
