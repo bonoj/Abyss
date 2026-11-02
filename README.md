@@ -15,6 +15,8 @@
 4. Commit changes to `main`. Currently **changes under `shell/**` and to the publisher workflow trigger publication automatically**. Other folders do **not** automatically trigger deployment; add a deliberate workflow trigger or use `workflow_dispatch` when supported. Do not imply an ordinary commit to another folder was deployed.
 5. Follow the actual Actions run to completion. Check `/Abyss/pages.json`, the relevant public entry, and the executing build number. Distinguish **committed**, **Pages deployed**, **public entry verified**, and **browser runtime verified**. Do not call a world live solely because the workflow succeeded.
 
+**Strand — current natural-world frontier:** [Strand README and cold-boot handoff](shell/codex/strand/README.md). Open with [`?world=strand`](https://bonoj.github.io/Abyss/shell/?world=strand). Begin there for weathered stone, moss, ferns, roots and mist; its invariants, source links, verification status and next steps live in that README. Entropy remains the default.
+
 ## What Shell contains
 
 ```text
@@ -25,14 +27,16 @@ shell/
 ├── arcana/              # reusable capabilities
 ├── codex/
 │   ├── genesis/world.js # preserved original
-│   └── entropy/world.js # currently mounted world
+│   ├── entropy/world.js # default world
+│   ├── europa/world.js  # opt-in world
+│   └── strand/          # opt-in temperate world; README.md is its handoff
 ├── archive/sieve/       # preserved non-runtime outreach artifacts
 └── HANDOFF.md
 ```
 
 `shell/sieve/compose.js` and the redundant `shell/codex/sieve/world.js` have been removed. Genesis was byte-identical to the old Sieve world. The top-level Shell directory is **one deployable application** that can host multiple Codex worlds. Separate top-level Abyss folders are only necessary for independent applications/runtimes, not for every world.
 
-Shell's `index.html` fetches `build.json` and imports the SHA-qualified loader. `shell/main.js` mounts `./codex/entropy/world.js` (Genesis is preserved but inactive). The publisher bundles all local modules into `assets/main.<SHA>.js`; do not depend on legacy query-string cache busting. Extend this composition deliberately as worlds are added.
+Shell's `index.html` fetches `build.json` and imports the SHA-qualified loader. `shell/main.js` mounts Entropy by default and selects Europa or Strand through the `world` query parameter (Genesis is preserved but inactive). The publisher bundles all local modules into `assets/main.<SHA>.js`; do not depend on legacy query-string cache busting. Extend this composition deliberately as worlds are added.
 
 ## Publication contract
 
