@@ -3,9 +3,12 @@
 import './athanor/athanor.js';
 import {createEntropy} from './codex/entropy/world.js';
 import {createEuropa} from './codex/europa/world.js';
-const europa=new URLSearchParams(location.search).get('world')==='europa';
-const world=europa?createEuropa():createEntropy();
-globalThis.Athanor.mount(europa?'europa':'entropy',world);
+import {createStrand} from './codex/strand/world.js';
+const selection=new URLSearchParams(location.search).get('world');
+const europa=selection==='europa';
+const strand=selection==='strand';
+const world=strand?createStrand():europa?createEuropa():createEntropy();
+globalThis.Athanor.mount(strand?'strand':europa?'europa':'entropy',world);
 world.attachView(globalThis.Athanor.view());
 
 // Explicit, opt-in diagnostic operation; no automatic excavation on boot.
