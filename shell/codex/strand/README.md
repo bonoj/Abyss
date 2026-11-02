@@ -67,3 +67,7 @@ Keep this procedure local to Strand while evaluating it; do not change Gate or s
 ## Isolated material study — 2026-11-02
 
 The uniform bump and global terrain tint were rejected. Strand now leaves Arcana's terrain material untouched; `strand-geology.js` is a neutral no-op. A single independent faceted stone specimen is mounted by `world.js` via [material-specimen.js](material-specimen.js). Its geometry/material are visual only, not authoritative collision or inventory. Keep future texture, normal, and bump experiments confined to this specimen until visually accepted. Source commits: neutral restoration `06c8bc9f`, specimen `2498f670`, composition `bd3098c5`. Browser rendering remains unverified.
+
+## BB-backed coherent rock prototype — 2026-11-02
+
+The isolated specimen now contains a deterministic inventory of 96 unit-total-mass BB records, rendered as one low-poly coherent stone. `material-specimen.js` advances vertical gravity and resamples the terrain's top signed-field crossing each frame; `world.js` calls `specimen.update(dt)`. It starts above the terrain and should settle, then drop if the sampled support falls away. This is a **limited proof of representation**, not bonded particle dynamics: there is no actual bond graph, BB collision, torque, rolling, cave contact, or conversion into free debris. Do not describe it as a physically accurate rock yet. Initial commits: `fe56ba11`, `a296b7b8`. Browser behavior unverified.
