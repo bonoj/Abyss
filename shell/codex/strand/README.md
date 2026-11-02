@@ -63,3 +63,7 @@ Keep this procedure local to Strand while evaluating it; do not change Gate or s
 - Runtime palette uses elevation and triangle derivative orientation for slate, ochre, green and mineral tones. No decorative cover meshes are created.
 - Small source writes succeeded: composition switch `42406bb7`, scaffold `b4fa6752`, shader `3f037885`, newline fix `541abfed`. These demonstrate smaller writes can succeed; they do not prove why the earlier larger write was blocked.
 - **Source committed and read back; browser rendering and Pages deployment not verified.** Inspect GLSL compilation, terrain visibility, palette and aperture clipping before claiming success.
+
+## Isolated material study — 2026-11-02
+
+The uniform bump and global terrain tint were rejected. Strand now leaves Arcana's terrain material untouched; `strand-geology.js` is a neutral no-op. A single independent faceted stone specimen is mounted by `world.js` via [material-specimen.js](material-specimen.js). Its geometry/material are visual only, not authoritative collision or inventory. Keep future texture, normal, and bump experiments confined to this specimen until visually accepted. Source commits: neutral restoration `06c8bc9f`, specimen `2498f670`, composition `bd3098c5`. Browser rendering remains unverified.
