@@ -10,9 +10,9 @@ export function createStrandGeology(T, terrain) {
  material.flatShading=true;
  material.onBeforeCompile=shader=>{
   previous(shader);
-  shader.vertexShader=shader.vertexShader.replace('#include <common>', '#include <common>\\nvarying vec3 vStrandPosition;');
-  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\\nvStrandPosition=position;');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <common>', '#include <common>\\nvarying vec3 vStrandPosition;');
+  shader.vertexShader=shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vStrandPosition;');
+  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvStrandPosition=position;');
+  shader.fragmentShader=shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vStrandPosition;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
    vec3 dpdx=dFdx(vStrandPosition);
    vec3 dpdy=dFdy(vStrandPosition);
