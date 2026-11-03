@@ -62,6 +62,12 @@ This is the **specific reference to recover**, not the Orthanc moss material and
 
 **Strand direction:** study the shared material-field construction, not its exact look or repetition. Moss may be an evolving property of stone rather than an independent population. BBs remain appropriate for destruction debris or genuinely organic populations; they are not required just to color or weather a stone. No moss implementation is currently mounted, and this reference does not authorize rebuilding the rejected green-disc/cone experiment.
 
+## First intact masonry tower — 2026-11-03
+
+**Source:** [masonry-tower.js](masonry-tower.js) · shared bevel geometry [brick-rain.js](brick-rain.js) · [composition](world.js). One coherent, movable `T.Group` of existing beveled stone bricks, with hollow perimeter, front doorway, flat lintel and crenellated top, mounted near X=-2.7, Z=0 away from the offset loose masonry rain. **No bespoke arch pieces, external dependency, or second rigid-body simulation.** The group is intentionally kinematic and intact; bond graphs, compound contacts, fracture, worker manipulation and user-facing placement controls are future work.
+
+The foundation uses `createTerrainSurfaceQuery` to sample perimeter and center, places the level group at the highest sampled ground plus a bevel allowance, and exposes `world.placeTower(x,z)` and `world.inspect().systems` tower placement diagnostics. A level, nonpenetrating pose **does not guarantee full support**: valid sample count, near contacts and maximum gap are explicitly reported. This is an initial placement algorithm, not physically simulated settling or certified stability. No browser witness yet. See [Chronicle](CHRONICLE.md) for implementation commits and limits.
+
 ## Next handoff
 
 **Moss program, pass 1 (source committed 2026-11-03):** masonry rain now spawns with world-space offset `stackOrigin={x:4.5,z:0}` in `brick-rain.js`, code commit [`a33b47de`](https://github.com/bonoj/Abyss/commit/a33b47de2ca0d3a7209f8dd4c858f6e4352793d0). Existing 72 bodies, physics, meteor and terrain remain unchanged. Source readback and initial spawn-center bounds were checked; **Pages/browser and the human's visual composition are not yet verified**. No moss or universal retina/population refactor yet. Full design and this pass's evidence are in [Chronicle](CHRONICLE.md). **The human verified the shifted stack. The subsequent moss prototype was rejected and removed; see rollback above.**
