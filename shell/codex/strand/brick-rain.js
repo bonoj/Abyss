@@ -17,7 +17,7 @@ export function createBrickRain(T,{parent,terrain}){
  const contacts=createStoneContacts(T,terrain,half,materials);
  const eye=createStrandEye({bodies,contacts,terrain,stepSeconds:1/120});
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
- let spawned=0,clock=0,accumulator=0,steps=0,solverMs=0,solverPeakMs=0;
+ let spawned=0,clock=0,accumulator=0,steps=0,solverMs=0,solverPeakMs=0,sleepTransitions=0,lastStepSleepTransitions=0;
  const STEP=1/120,MAX_STEPS=8;
  function spawn(){
   const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
@@ -30,7 +30,7 @@ export function createBrickRain(T,{parent,terrain}){
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
-  const start=performance.now();contacts.beginStep();
+  const start=performance.now();contacts.beginStep();lastStepSleepTransitions=0;
   clock+=STEP;
   if(spawned<72&&clock>=.19){clock-=.19;spawn();}
   for(const body of bodies){
@@ -68,7 +68,7 @@ export function createBrickRain(T,{parent,terrain}){
     other.mesh.position.y<p.y&&p.y-other.mesh.position.y<h+.09);
    if(supported&&body.v.lengthSq()<.0009&&body.spin.lengthSq()<.0009)body.quiet++;
    else body.quiet=0;
-   if(body.quiet>100){body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);}
+   if(body.quiet>100){sleepTransitions++;lastStepSleepTransitions++;body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);}
   }
   steps++;solverMs=performance.now()-start;solverPeakMs=Math.max(solverPeakMs,solverMs);
  }
@@ -76,7 +76,7 @@ export function createBrickRain(T,{parent,terrain}){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
  }
- return {update,eye:()=>({...eye.snapshot(),timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ return {update,eye:()=>({...eye.snapshot(),sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
