@@ -30,7 +30,7 @@ export function createBrickRain(T,{parent,terrain}){
   while(pendingBlasts.length){
    const event=pendingBlasts.shift(),point=new T.Vector3(event.point.x,event.point.y,event.point.z);
    const direct=bodies.find(b=>b.id===event.hit?.bodyId),counts={stone:0,wood:0,ice:0};
-   let totalImpulse=0,woken=0;
+   let totalImpulse=0,woken=0,blastPeakDeltaV=0;
    for(const body of bodies){
     const delta=body.mesh.position.clone().sub(point),dist=delta.length();
     if(dist>=radius&&body!==direct)continue;
@@ -41,13 +41,13 @@ export function createBrickRain(T,{parent,terrain}){
     if(isDirect)outward.set(0,-1,0);
     if(impulse<=0)continue;
     if(!body.awake){body.awake=true;body.quiet=0;woken++;}
-    const deltaV=impulse/body.mass;maxBlastDeltaV=Math.max(maxBlastDeltaV,deltaV);
+    const deltaV=impulse/body.mass;maxBlastDeltaV=Math.max(maxBlastDeltaV,deltaV);blastPeakDeltaV=Math.max(blastPeakDeltaV,deltaV);
     body.v.addScaledVector(outward,deltaV);
     const arm=isDirect?point.clone().sub(body.mesh.position):outward.clone().multiplyScalar(.12);
     body.spin.addScaledVector(arm.cross(outward),impulse*body.invI);
     counts[body.material]++;totalImpulse+=impulse;
    }
-   lastBlast={point:event.point,hit:event.hit||{kind:'terrain'},radius,core,affected:counts,impulse:totalImpulse,woken,maxDeltaV:maxBlastDeltaV,step:steps};blastCount++;
+   lastBlast={point:event.point,hit:event.hit||{kind:'terrain'},radius,core,affected:counts,impulse:totalImpulse,woken,maxDeltaV:blastPeakDeltaV,step:steps};blastCount++;
   }
  }
 
