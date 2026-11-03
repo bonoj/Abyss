@@ -43,7 +43,13 @@ const world=new T.Group();scene.add(world);
 // A world supplies its reality; Athanor supplies mounting, scheduling and observation.
 // Parentage, visibility and update participation are deliberately independent.
 const mounts=new Map();
-document.querySelector('#meteor')?.addEventListener('click',()=>{for(const entry of mounts.values())if(entry.active&&typeof entry.source.castMeteor==='function')entry.source.castMeteor()});
+const meteorButton=document.querySelector('#meteor');let meteorArmed=false;
+ meteorButton?.addEventListener('click',()=>{
+  const targeted=[...mounts.values()].some(entry=>entry.active&&typeof entry.source.targetMeteor==='function');
+  if(targeted){meteorArmed=!meteorArmed;meteorButton.setAttribute('aria-pressed',String(meteorArmed));meteorButton.style.outline=meteorArmed?'2px solid #ff9b51':'';return;}
+  for(const entry of mounts.values())if(entry.active&&typeof entry.source.castMeteor==='function')entry.source.castMeteor();
+ });
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&meteorArmed){meteorArmed=false;meteorButton?.setAttribute('aria-pressed','false');if(meteorButton)meteorButton.style.outline='';}});
 function mountWorld(id,source,{parent=null,visible=true,active=true}={}){
  if(typeof id!=='string'||!id||mounts.has(id))throw Error('Invalid or duplicate world id: '+id);
  if(parent!==null&&!mounts.has(parent))throw Error('Unknown parent world: '+parent);
@@ -113,7 +119,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
 function end(e,canceled=false){
  const start=pointerStarts.get(e.pointerId);
  if(!canceled&&!multiGesture&&start&&pointers.size===1&&Math.hypot(e.clientX-start[0],e.clientY-start[1])<TAP_SLOP)
-  {for(const entry of mounts.values())if(entry.active&&typeof entry.source.tap==='function')entry.source.tap(e.clientX,e.clientY)}
+  {for(const entry of mounts.values())if(entry.active){if(meteorArmed&&typeof entry.source.targetMeteor==='function')entry.source.targetMeteor(e.clientX,e.clientY);else if(!meteorArmed&&typeof entry.source.tap==='function')entry.source.tap(e.clientX,e.clientY)}}
  pointerStarts.delete(e.pointerId);pointers.delete(e.pointerId);
  if(!pointers.size){pinch=0;multiGesture=false}
 }
