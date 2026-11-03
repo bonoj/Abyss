@@ -1,4 +1,5 @@
 import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
+import {createStrandEye} from './eye.js';
 // Original Stone & Root bevel/profile/palette. Independent Strand rigid masonry.
 export function createBrickRain(T,{parent,terrain}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
@@ -14,6 +15,7 @@ export function createBrickRain(T,{parent,terrain}){
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
  const half=[w/2+.035,h/2+.035,d/2+.035],bodies=[];
  const contacts=createStoneContacts(T,terrain,half,materials);
+ const eye=createStrandEye({bodies,contacts,terrain,stepSeconds:1/120});
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
  let spawned=0,clock=0,accumulator=0,steps=0;
  const STEP=1/120,MAX_STEPS=8;
@@ -73,7 +75,7 @@ export function createBrickRain(T,{parent,terrain}){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
  }
- return {update,inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ return {update,eye:eye.snapshot,inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
