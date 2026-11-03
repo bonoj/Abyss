@@ -47,22 +47,21 @@ export function createHermeticon(){
   content.traverse(o=>{
    if(!o.isMesh&&!o.isLine&&!o.isPoints)return;
    seen.add(o);
-   if(!managed.has(o))managed.set(o,o.visible);
-   const authored=managed.get(o);
-   // Do not revive objects deliberately hidden by their owners.
-   if(o.visible&&!authored)managed.set(o,true);
-   if(o.userData.hermeticonAperture==='exempt'){o.visible=managed.get(o);exempt++;return;}
+   if(!managed.has(o))managed.set(o,{authored:o.visible,applied:o.visible});
+   const state=managed.get(o);
+   if(o.visible!==state.applied)state.authored=o.visible;
+   if(o.userData.hermeticonAperture==='exempt'){o.visible=state.authored;state.applied=o.visible;exempt++;return;}
    examined++;
    const g=o.geometry;
-   if(!g){o.visible=managed.get(o);return;}
+   if(!g){o.visible=state.authored;state.applied=o.visible;return;}
    if(!g.boundingSphere)g.computeBoundingSphere();
-   if(!g.boundingSphere){o.visible=managed.get(o);return;}
+   if(!g.boundingSphere){o.visible=state.authored;state.applied=o.visible;return;}
    center.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld);
    group.worldToLocal(local.copy(center));
    o.matrixWorld.decompose(center,new THREE.Quaternion(),scale);
    const radius=g.boundingSphere.radius*Math.max(Math.abs(scale.x),Math.abs(scale.y),Math.abs(scale.z));
    const outside=local.length()-radius>apertureRadius;
-   o.visible=managed.get(o)&&!outside;
+   o.visible=state.authored&&!outside;state.applied=o.visible;
    if(outside)culled++;
   });
   for(const o of managed.keys())if(!seen.has(o))managed.delete(o);
