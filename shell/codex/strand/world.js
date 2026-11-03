@@ -8,6 +8,8 @@ import {createCinderfall} from '../../arcana/spells/cinderfall.js';
 import {createMaterialSurvey} from '../../arcana/observation/material-survey.js';
 import {createStrandGeology} from './strand-geology.js';
 import {createBrickRain} from './brick-rain.js';
+import {createPopulationRetina} from '../../arcana/population-retina.js';
+import {createMossExperiment} from './moss.js';
 import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 // Strand shader experiment: keep visual treatments local to this world.
 export function createStrand(){
