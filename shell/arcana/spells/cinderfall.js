@@ -12,13 +12,13 @@ export function createCinderfall(T,{surface,targets=()=>[],offset=()=>({x:0,z:0}
  const MAX=36,embers=new T.InstancedMesh(emberGeometry,emberMaterial,MAX);embers.count=0;embers.frustumCulled=false;group.add(embers);
  const dummy=new T.Object3D(),particles=[],impacts=[];let clock=0,serial=0;const active=[];
  function rand(){let x=(serial*2246822519+Math.floor(clock*1000)+seed)>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;serial=x>>>0;return serial/4294967296}
- function cast(){
-  const choices=targets().filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&surface(p.x,p.z)!=null);
+ function cast(explicitTarget=null){
+  const choices=(explicitTarget?[explicitTarget]:targets()).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&surface(p.x,p.z)!=null);
   if(!choices.length)return false;
-  const target=choices[Math.floor(rand()*choices.length)],ground=surface(target.x,target.z);
+  const target=explicitTarget?choices[0]:choices[Math.floor(rand()*choices.length)],ground=surface(target.x,target.z);
   const start={x:target.x+(rand()-.5)*2.4,y:ground+10+rand()*3.2,z:target.z+(rand()-.5)*2.4};
   const head=new T.Mesh(headGeometry,headMaterial);heads.add(head);
-  active.push({head,start,target:{x:target.x,y:Number.isFinite(target.altitude)?target.altitude:ground+.12,z:target.z},species:target.species||'creature',age:0,life:.35,lastEmit:0});
+  active.push({head,start,target:{x:target.x,y:Number.isFinite(target.altitude)?target.altitude:ground+.12,z:target.z},species:target.species||'creature',hit:target.hit||null,age:0,life:.35,lastEmit:0});
   return true;
  }
  function update(dt){
@@ -35,7 +35,7 @@ export function createCinderfall(T,{surface,targets=()=>[],offset=()=>({x:0,z:0}
    }
    if(u>=1){
     const point={...a.target};impacts.push({at:clock,point,species:a.species});if(impacts.length>12)impacts.shift();
-    onImpact({point,magnitude:1,species:a.species,terrainChanged:false});
+    onImpact({point,magnitude:1,species:a.species,hit:a.hit,terrainChanged:false});
     heads.remove(a.head);active.splice(ai,1);
    }
   }
