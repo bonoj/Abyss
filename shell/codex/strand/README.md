@@ -29,6 +29,19 @@ Ancient temperate world inside the existing Hermeticon: credible weathered geolo
 3. **README + handoff:** update only current composition, verified status, links, and the next actionable task. Keep this README compact.
 4. **Cleanup:** remove stale current-state assertions and redundant prose; archive incidental/superseded material in [README.ARCHIVE.md](README.ARCHIVE.md), not Chronicle. Verify links, imports and no unintended world changes.
 
+## Mandatory write-failure recovery — read before escalating
+
+**Authority:** [Gate's failure recovery and publication rules](https://github.com/bonoj/Gate/blob/main/README.md) and the [Sanctum CONTRACT](https://github.com/bonoj/Sanctum/blob/main/CONTRACT.md). **A tool error is not proof of a GitHub refusal, an OpenAI safety denial, or a failed task.** Do not make the human diagnose routine failures, supply shell commands, reauthorize already authorized work, or restate this procedure.
+
+1. **Classify from actual evidence.** Read the complete error and current remote file/branch state. Distinguish invalid arguments, missing file, stale blob SHA / concurrent edit, large payload / transport, rate limit, transient service failure, repository permission, and **explicit policy/safety restriction**. Do not guess the cause from a generic failure message.
+2. **Recover ordinary failures autonomously.** Refresh remote SHA and reconcile edits; create a **minimal valid scaffold for new files**, then populate with small **sequential** updates and readback; repair malformed inputs; retry transient failures judiciously. Never hammer the same failing payload.
+3. **Use the established authorized fallback.** For Contents API transport/payload/tool failures, Gate permits Git Data **blob → tree → commit → ref with expected head**, when available and authorized. Verify the expected head to avoid overwriting concurrent changes. This is an alternate legitimate GitHub write API, **not** a workaround for an actual safety or authorization denial.
+4. **Honor real boundaries.** If the error explicitly denies an action for safety, policy, authentication or permissions, do **not** repackage, fragment, reroute or disguise the prohibited action. Stop that action, preserve state, and report the precise restriction. Do not label ordinary tool failures as policy denials without evidence.
+5. **Verify and continue.** Read back the committed file and SHA, inspect the deployment workflow and public bytes separately when publishing, then continue at the **first incomplete step**. A commit is not a verified runtime. If permitted recovery routes are exhausted, report exactly what failed and what remains, without declaring the whole project impossible.
+6. **Protect the work.** Keep a rollback baseline; on breakage restore first, investigate second. Stay scoped to Strand and preserve other worlds. Record only durable lessons in the UTC Chronicle, not a new procedural bureaucracy.
+
+**Operating rule:** absorb benign friction, preserve momentum, and escalate only genuine authorization/safety boundaries, irrecoverable failures, or essential decisions. The machinery protects the play.
+
 ## Next handoff
 
 **Next action:** observe and instrument the actual 72-brick fall/settle on Strand's stone hills and mesas; then implement accurate terrain separation, persistent multipoint contacts and robust sleeping islands. Record measured contact count, penetration, awake bodies, solver cost and browser outcome before declaring success.
