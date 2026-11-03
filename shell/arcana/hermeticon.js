@@ -11,7 +11,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
  * Do not modify accepted glass/brass appearance to fix missing inhabitants.
  * Incident 2026-10-14: missing scene attachment made a nested eye invisible.
  */
-const R=10.25, INNER_R=R-.18;
+const R=10.25, INNER_R=R-.18, DEFAULT_APERTURE=9.72;
+// Explicit opt-out: object.userData.hermeticonAperture='exempt'.
+// Visibility is evaluated on the renderable, not on a parent population group.
 export function createHermeticon(){
  const group=new THREE.Group();group.name='Hermeticon';
  const glass=(radius,color,opacity,side)=>{
@@ -33,7 +35,39 @@ export function createHermeticon(){
   const rivet=new THREE.Mesh(new THREE.SphereGeometry(.12,12,8),bright);
   rivet.position.set(Math.cos(a)*R,0,Math.sin(a)*R);group.add(rivet);
  }
- return {group,content:new THREE.Group(),inspect(){return {name:'Hermeticon',vessel:{radius:R,innerRadius:INNER_R,glass:true,equatorialHardware:true},children:this.content.children.length}}};
+ const content=new THREE.Group();content.name='Hermeticon contents';
+ let apertureRadius=DEFAULT_APERTURE,culled=0,examined=0,exempt=0;
+ const center=new THREE.Vector3(),local=new THREE.Vector3(),scale=new THREE.Vector3();
+ const managed=new Map();
+ function updateAperture(){
+  // Called centrally by Athanor before rendering, never by individual populations.
+  content.updateWorldMatrix(true,true);
+  examined=0;culled=0;exempt=0;
+  const seen=new Set();
+  content.traverse(o=>{
+   if(!o.isMesh&&!o.isLine&&!o.isPoints)return;
+   seen.add(o);
+   if(!managed.has(o))managed.set(o,o.visible);
+   const authored=managed.get(o);
+   // Do not revive objects deliberately hidden by their owners.
+   if(o.visible&&!authored)managed.set(o,true);
+   if(o.userData.hermeticonAperture==='exempt'){o.visible=managed.get(o);exempt++;return;}
+   examined++;
+   const g=o.geometry;
+   if(!g){o.visible=managed.get(o);return;}
+   if(!g.boundingSphere)g.computeBoundingSphere();
+   if(!g.boundingSphere){o.visible=managed.get(o);return;}
+   center.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld);
+   group.worldToLocal(local.copy(center));
+   o.matrixWorld.decompose(center,new THREE.Quaternion(),scale);
+   const radius=g.boundingSphere.radius*Math.max(Math.abs(scale.x),Math.abs(scale.y),Math.abs(scale.z));
+   const outside=local.length()-radius>apertureRadius;
+   o.visible=managed.get(o)&&!outside;
+   if(outside)culled++;
+  });
+  for(const o of managed.keys())if(!seen.has(o))managed.delete(o);
+ }
+ return {group,content,aperture:{get radius(){return apertureRadius},setRadius(r){if(!(Number.isFinite(r)&&r>0&&r<=INNER_R))throw Error('Invalid Hermeticon aperture');apertureRadius=r},update:updateAperture,inspect:()=>({radius:apertureRadius,examined,culled,exempt,method:'per-renderable bounding sphere',partialClipping:false})},inspect(){return {name:'Hermeticon',vessel:{radius:R,innerRadius:INNER_R,glass:true,equatorialHardware:true},aperture:this.aperture.inspect(),children:this.content.children.length}}};
 }
 
 export const hermeticon=createHermeticon();
