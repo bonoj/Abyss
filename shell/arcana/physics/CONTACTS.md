@@ -67,3 +67,20 @@ Do not infer physical properties solely from the visual color, shader, or mesh n
 ## Next implementation action
 
 Start with an isolated, deterministic, headless **one-box-on-terrain** test and contact data model in `shell/arcana/physics/`. Prove static friction and rest before integrating piles or moving any other world. Avoid new dependencies until the necessary mechanics are understood and measured.
+
+## Scale and performance contract
+
+Performance is a design constraint from the first implementation, not a later optimization. **One contact architecture does not imply one solver cost per object.**
+
+- **Rigid-body tier:** thousands of boxes, rocks, structures, and articulated parts use broad-phase candidate generation, persistent manifolds, warm-started impulses, sleeping islands, and awake-only narrow-phase/solver work. Static terrain participates through localized spatial queries, not all-pairs comparisons.
+- **Particle tier:** tens of thousands of BBs or grains use structure-of-arrays/typed-array storage, spatial bins or hashed grids, batched sphere/field queries, and purpose-built neighbor/contact kernels. Do not instantiate one full rigid-body object, Three.js mesh, or generic manifold per BB.
+- **Aggregate tier:** inactive granular populations may use a validated coarse representation, occupancy/heightfield, or bonded cluster where the world semantics permit. Wake or refine only where impacts, extraction, or deformation require individual behavior. Never silently discard BB identity or ownership semantics.
+- **Broad phase:** scale with occupied spatial cells and plausible neighbors, not O(N²) all-pairs. Measure pathological dense clusters as well as sparse populations; spatial hashing alone does not guarantee cheap dense contacts.
+- **Memory and allocation:** preallocate/reuse working buffers and contact records, prefer stable numeric IDs and contiguous storage, and avoid allocations in hot contact loops. Keep renderer state separate from physics state.
+- **Scheduling:** fixed physics step with bounded catch-up, budgets for broad phase/narrow phase/solve, stable deterministic ordering where required, and sleep/wake propagation across support islands. Avoid silently dropping essential collision work to meet a frame budget.
+- **Collision detail:** per-population shape adapters and solver kernels can be specialized, while contact conventions, material-pair laws, event accounting, and telemetry remain shared.
+- **Instrumentation:** measure body/particle counts, awake counts, candidate pairs, actual contacts, solver iterations, CPU time by stage, allocation/GC pressure, and p50/p95/p99 frame cost. Verify correctness and throughput together.
+
+### Performance gates
+
+Benchmark a single body, 72 falling bricks, 1k/5k/10k rigid bodies, and a separate 25k-BB scenario with sparse, clustered, and disturbed distributions. Record actual hardware, timestep, frame budget, density, awake fraction, and contact counts before declaring capacity. These are **test workloads, not claims of achieved performance**. Preserve existing BB ownership and capture behavior during any future migration.
