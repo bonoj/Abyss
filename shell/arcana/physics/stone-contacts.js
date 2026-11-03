@@ -45,7 +45,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    if(b)pb.addScaledVector(n,correction*ib);
   }
   stats.contacts++;
-  frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;frame.slipSum+=speed;
+  frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;frame.slipSum+=Math.hypot(rv.x-vn*n.x,rv.y-vn*n.y,rv.z-vn*n.z);
   if(a&&b)frame.bodyImpulses++;else frame.terrainImpulses++;
   if(n.y>.55&&j>0)frame.supportImpulses++;
   const key=pairKey(a?.material,b?.material);stats.byPair[key]=(stats.byPair[key]||0)+1;stats.impulseByPair[key]=(stats.impulseByPair[key]||0)+j;
