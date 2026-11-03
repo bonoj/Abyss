@@ -3,6 +3,8 @@ import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
 export function createBrickRain(T,{parent,terrain}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
  const palette=[0xb4b2a3,0xc9c3ad,0xaaa99f,0xd2c8b0,0x979f9e,0xb9b8ad,0xe0d0b2].map(color=>new T.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+ const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06}};
+ const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true}))};
  const w=.72,h=.36,d=.44,b=.065;
  const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
  s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
@@ -11,18 +13,18 @@ export function createBrickRain(T,{parent,terrain}){
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
  const half=[w/2+.035,h/2+.035,d/2+.035],bodies=[];
- const contacts=createStoneContacts(T,terrain,half);
+ const contacts=createStoneContacts(T,terrain,half,materials);
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
  let spawned=0,clock=0,accumulator=0,steps=0;
  const STEP=1/120,MAX_STEPS=8;
  function spawn(){
-  const i=spawned++,mesh=new T.Mesh(geo,palette[i%palette.length]);
+  const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set((rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
-  const mass=5;
+  const mass=5*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
-   mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
+   id:i,material:kind,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
@@ -71,7 +73,7 @@ export function createBrickRain(T,{parent,terrain}){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
  }
- return {update,inspect:()=>({name:'Stone & Root brick rain',count:bodies.length,awake:bodies.filter(b=>b.awake).length,
+ return {update,inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
-  candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana stone contacts / fixed 120Hz / spatial bins'})};
+  candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
