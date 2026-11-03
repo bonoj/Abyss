@@ -8,6 +8,8 @@
 **Shell handoff:** [../../HANDOFF.md](../../HANDOFF.md)  
 **Recovery:** [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and the Sanctum CONTRACT.
 
+**Unified physics frontier:** [Arcana CONTACTS contract](../../arcana/physics/CONTACTS.md). Strand masonry is the first migration target. The existing brick solver is a prototype with known sliding/resting-contact limitations; do not mistake this contract for implemented physics. The Orbital Foundry is preserved in source and JIT Icarus but no longer mounted in Strand (commit `27152638`).
+
 ## Intent
 
 Strand is the quiet, natural-world branch of Abyss: an ancient temperate landscape inside a Hermeticon. Begin with weathered stone, moss, ferns, exposed roots and mist. First establish credible geology, material, scale, organic colonization and atmosphere. Tower defense is a later possibility, not the current brief.
