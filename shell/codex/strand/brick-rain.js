@@ -6,6 +6,8 @@ export function createBrickRain(T,{parent,terrain}){
  const palette=[0xb4b2a3,0xc9c3ad,0xaaa99f,0xd2c8b0,0x979f9e,0xb9b8ad,0xe0d0b2].map(color=>new T.MeshStandardMaterial({color,roughness:1,flatShading:true}));
  const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06}};
  const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true}))};
+ // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
+ const stackOrigin={x:4.5,z:0};
  const w=.72,h=.36,d=.44,b=.065;
  const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
  s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
@@ -49,7 +51,7 @@ export function createBrickRain(T,{parent,terrain}){
 
  function spawn(){
   const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
-  mesh.position.set((rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,(rnd(i*3+2)-.5)*2.2);
+  mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*materials[kind].density;
