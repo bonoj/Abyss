@@ -40,7 +40,7 @@ export function createStrand(){
   const rect=view.renderer.domElement.getBoundingClientRect();
   const pointer=new T.Vector2((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height*2-1));
   raycaster.setFromCamera(pointer,view.camera);
-  const hit=raycaster.intersectObjects([...bricks.pickables(),...terrainMeshes],false)[0];
+  const hit=raycaster.intersectObjects(pickables(),false)[0];
   if(!hit)return false;
   const target=targetAt(hit.point.x,hit.point.z);return target?meteor.cast(target):false;
  };
