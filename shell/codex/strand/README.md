@@ -1,6 +1,7 @@
 # Strand — temperate emergence
 
 **Entry:** [Strand in Shell](https://bonoj.github.io/Abyss/shell/?world=strand)  
+**Chronicle / cold boot:** [CHRONICLE.md](CHRONICLE.md)  
 **Composition:** [world.js](world.js)  
 **Geology shader:** [strand-geology.js](strand-geology.js)  
 **Host:** [../../main.js](../../main.js)  
@@ -8,7 +9,7 @@
 **Shell handoff:** [../../HANDOFF.md](../../HANDOFF.md)  
 **Recovery:** [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and the Sanctum CONTRACT.
 
-**Unified physics frontier:** [Arcana CONTACTS contract](../../arcana/physics/CONTACTS.md). Strand masonry is the first migration target. The existing brick solver is a prototype with known sliding/resting-contact limitations; do not mistake this contract for implemented physics. The Orbital Foundry is preserved in source and JIT Icarus but no longer mounted in Strand (commit `27152638`).
+**Unified physics frontier:** [Arcana CONTACTS contract](../../arcana/physics/CONTACTS.md). Strand masonry is the first migration target. The first shared stone-contact kernel is now wired to Strand bricks, but resting stability and runtime behavior remain unverified; see [Chronicle](CHRONICLE.md) and the contract implementation ledger. The Orbital Foundry is preserved in source and JIT Icarus but no longer mounted in Strand (commit `27152638`).
 
 ## Intent
 
@@ -32,9 +33,9 @@ Strand is the quiet, natural-world branch of Abyss: an ancient temperate landsca
 
 ## Cold boot / next handoff
 
-1. Read this file, Abyss README, Shell HANDOFF, and the current `world.js` and `temperate-landscape.js`. Inspect relevant Arcana source before changing signatures or assumptions.
+1. Read this file, Abyss README, Shell HANDOFF, and the current `world.js`, `brick-rain.js`, and Arcana `physics/stone-contacts.js`. Inspect relevant Arcana source before changing signatures or assumptions.
 2. Establish the current branch head, latest Pages workflow result, `/Abyss/pages.json` and `/Abyss/build.json`. Check the Strand entry with `?world=strand` and verify the executed SHA and browser behavior where tooling permits.
-3. **First task:** observe the actual landscape. Judge geological silhouette, whether rocks look attached to terrain, whether moss/ferns/roots read as organisms, whether mist works, and whether the Hermeticon frames the composition. Fix the most consequential mismatch, not generic UI polish.
+3. **First task:** read the [Chronicle](CHRONICLE.md), inspect current brick physics and observe the actual landscape. Judge geological silhouette, whether rocks look attached to terrain, whether moss/ferns/roots read as organisms, whether mist works, and whether the Hermeticon frames the composition. Fix the most consequential mismatch, not generic UI polish.
 4. Inspect collision/capture behavior separately from visual cover. Test meteor impact and debris retention; report any unverified behavior precisely.
 5. Work in small, reversible increments. Read back committed source and verify publication; preserve a rollback commit. Keep this handoff updated with real observations and the latest verified build.
 
