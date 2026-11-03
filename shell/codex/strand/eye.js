@@ -20,7 +20,8 @@ export function createStrandEye({bodies,contacts,terrain,stepSeconds}){
    bounds:{minY:round(lowest===Infinity?0:lowest),maxY:round(highest===-Infinity?0:highest)},
    fastestSpeed:round(fastest),contacts:{terrainCalls:contacts.stats.terrain,pairCalls:contacts.stats.pairs,
     impulseCalls:contacts.stats.contacts,candidates:contacts.stats.candidates,
-    byPair:{...contacts.stats.byPair},normalImpulseByPair:Object.fromEntries(Object.entries(contacts.stats.impulseByPair).map(([k,v])=>[k,round(v)]))},
+    byPair:{...contacts.stats.byPair},normalImpulseByPair:Object.fromEntries(Object.entries(contacts.stats.impulseByPair).map(([k,v])=>[k,round(v)])),
+    byInterface:{...contacts.stats.byInterface},normalImpulseByInterface:Object.fromEntries(Object.entries(contacts.stats.impulseByInterface).map(([k,v])=>[k,round(v)]))},
    samples,limitations:['Contact counters cumulative across solver passes; not unique manifolds','Kinetic energy excludes gravitational potential and terrain deformation','Sampled bodies limited to first 12','No contact-depth or frame-time telemetry yet','Runtime observation only; not proof of stable piles']};
  }
  return {snapshot};
