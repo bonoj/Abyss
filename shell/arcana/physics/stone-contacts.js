@@ -1,16 +1,18 @@
 // Arcana stone contact kernel. Coordinates are terrain-space; positive field is solid.
 // Body: {mesh,v,spin,mass,invI,awake,quiet}; contact normal points from A to B.
-export function createStoneContacts(T,terrain,half){
+export function createStoneContacts(T,terrain,half,materials={stone:{friction:.82,restitution:.09}}){
  const sample=terrain.sample.bind(terrain),g=9.8,eps=.035;
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
  const axes=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
- const stats={terrain:0,pairs:0,contacts:0,candidates:0};
+ const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{}};
+ const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
+ function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
  function gradient(x,y,z){
   const nx=sample(x-eps,y,z)-sample(x+eps,y,z),ny=sample(x,y-eps,z)-sample(x,y+eps,z),nz=sample(x,y,z-eps)-sample(x,y,z+eps);
   const len=Math.hypot(nx,ny,nz);
   return {n:new T.Vector3(nx,ny,nz).multiplyScalar(1/(len||1)),slope:len/(2*eps)};
  }
- function impulse(a,b,n,point,depth,friction=.8){
+ function impulse(a,b,n,point,depth,law){
   const ia=a?1/a.mass:0,ib=b?1/b.mass:0;
   if(ia+ib===0)return;
   const pa=a?.mesh.position,pb=b?.mesh.position;
@@ -20,7 +22,7 @@ export function createStoneContacts(T,terrain,half){
   rv.copy(vb).sub(va);const vn=rv.dot(n);
   const angular=(body,arm,dir)=>body?arm.clone().cross(dir).lengthSq()*body.invI:0;
   const denom=ia+ib+angular(a,ra,n)+angular(b,rb,n);
-  const restitution=vn< -1.1?.09:0;
+  const restitution=vn< -1.1?law.restitution:0;
   // Baumgarte bias handles resting penetration without velocity-wide damping.
   const j=Math.max(0,(-(1+restitution)*vn+Math.min(.8,Math.max(0,depth-.006)*8))/Math.max(denom,1e-8));
   function apply(dir,magnitude){
@@ -32,7 +34,7 @@ export function createStoneContacts(T,terrain,half){
   if(speed>1e-7){
    tangent.divideScalar(speed);
    const td=ia+ib+angular(a,ra,tangent)+angular(b,rb,tangent);
-   const jt=Math.min(j*friction,speed/Math.max(td,1e-8));
+   const jt=Math.min(j*law.friction,speed/Math.max(td,1e-8));
    apply(tangent,-jt);
   }
   if(depth>.003){
@@ -41,6 +43,7 @@ export function createStoneContacts(T,terrain,half){
    if(b)pb.addScaledVector(n,correction*ib);
   }
   stats.contacts++;
+  const key=pairKey(a?.material,b?.material);stats.byPair[key]=(stats.byPair[key]||0)+1;stats.impulseByPair[key]=(stats.impulseByPair[key]||0)+j;
  }
  function terrainBody(body){
   const p=body.mesh.position,q=body.mesh.quaternion;
@@ -54,7 +57,7 @@ export function createStoneContacts(T,terrain,half){
    // The field is nonmetric: local gradient gives a first-order distance estimate.
    const depth=Math.min(.12,value/slope);
    if(!Number.isFinite(depth))continue;
-   impulse(null,body,n,corner,depth,.92);hit=true;
+   impulse(null,body,n,corner,depth,response('stone',body.material));hit=true;
   }
   if(hit)stats.terrain++;
   return hit;
@@ -84,7 +87,7 @@ export function createStoneContacts(T,terrain,half){
   const pa=a.mesh.position.clone().addScaledVector(axis,half[1]);
   const pb=b.mesh.position.clone().addScaledVector(axis,-half[1]);
   const contact=pa.add(pb).multiplyScalar(.5);
-  impulse(a,b,axis,contact,Math.min(depth,.15),.82);
+  impulse(a,b,axis,contact,Math.min(depth,.15),response(a.material,b.material));
   stats.pairs++;return true;
  }
  return {terrainBody,pair,stats,gravity:g};
