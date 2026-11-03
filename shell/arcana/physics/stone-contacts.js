@@ -28,8 +28,8 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   // Baumgarte bias handles resting penetration without velocity-wide damping.
   const j=Math.max(0,(-(1+restitution)*vn+Math.min(.8,Math.max(0,depth-.006)*8))/Math.max(denom,1e-8));
   function apply(dir,magnitude){
-   if(a){a.v.addScaledVector(dir,-magnitude*ia);a.spin.addScaledVector(scratch.copy(ra).cross(dir),-magnitude*a.invI);if(!a.awake&&Math.abs(magnitude)>a.mass*.06){a.awake=true;a.quiet=0;}}
-   if(b){b.v.addScaledVector(dir,magnitude*ib);b.spin.addScaledVector(scratch.copy(rb).cross(dir),magnitude*b.invI);if(!b.awake&&Math.abs(magnitude)>b.mass*.06){b.awake=true;b.quiet=0;}}
+   if(a){a.v.addScaledVector(dir,-magnitude*ia);a.spin.addScaledVector(scratch.copy(ra).cross(dir),-magnitude*a.invI);a.awake=true;}
+   if(b){b.v.addScaledVector(dir,magnitude*ib);b.spin.addScaledVector(scratch.copy(rb).cross(dir),magnitude*b.invI);b.awake=true;}
   }
   apply(n,j);
   const tangent=rv.addScaledVector(n,-vn),speed=tangent.length();
