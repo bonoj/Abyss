@@ -17,6 +17,7 @@ export function createStrand(){
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
  const specimen=createMaterialSpecimen(T,{parent:world.content,surface,terrain});
+ world.cycleTreatment=specimen.cycleTreatment;world.currentTreatment=specimen.currentTreatment;
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:impacts.dispatch});
