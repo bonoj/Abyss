@@ -19,6 +19,15 @@ export function createStrand(){
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
  const bricks=createBrickRain(T,{parent:world.content,terrain});
+ const retina=createPopulationRetina({radius:terrain.getAperture()});
+ const moss=createMossExperiment(T,{parent:world.content,retina});
+ const registeredBricks=new Set();
+ function syncBrickRetina(){for(const mesh of bricks.pickables()){
+  if(registeredBricks.has(mesh))continue;
+  registeredBricks.add(mesh);
+  const body=bricks.bodyForMesh(mesh);
+  retina.register('brick-'+body.id,{position:()=>mesh.position,visible:v=>{mesh.visible=v}});
+ }}
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:event=>{
