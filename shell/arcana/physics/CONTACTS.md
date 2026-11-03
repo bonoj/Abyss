@@ -1,94 +1,89 @@
-# Arcana — unified contacts
+# Arcana Physics — material, provenance & contact SST
 
-**Status:** architectural contract; not yet implemented or wired. **First consumer:** Strand's Stone & Root bricks and atlas terrain. Keep existing Genesis, Entropy, Europa, Wanderer, BB debris, meteor, vessel, and locomotion behavior unchanged until explicitly migrated and regression-tested.
+**Status:** authoritative design contract, **not implemented**. **Scope:** all Abyss material/collision consumers. **First migration:** Strand stone bricks ↔ existing atlas terrain. **Invariant:** one contact convention and mechanics; material-pair-specific response; geometry, geological provenance, and rendering are distinct. This document supersedes earlier CONTACTS proposals where they conflict. No runtime consumer is migrated merely by editing this file.
 
-## Principle
+## Existing source of truth (verified 2026-11-03)
 
-**Everyone shares contact mechanics; each material pairing chooses its physical response.** Shape detection is not material response, and neither should depend on rendering or a named world. An object may be rigid, compliant, deformable, anchored, articulated, or a static boundary. A material can influence contact impulses and also emit persistent world changes.
-
-## Layers and ownership
-
-1. **World / scheduler:** fixed timestep, gravity, body registry, broad phase, contact cache, sleep/wake, deterministic stepping, telemetry. Owns the only authoritative integration of registered bodies. No per-population second gravity pass.
-2. **Shape adapters / narrow phase:** generate contacts for box–box, sphere–sphere, sphere–terrain, convex–terrain, later capsules and compounds. Terrain's signed field is an implicit occupancy function, **not guaranteed a signed distance**. Use bracketing/sweeps or surface projection to estimate actual separation; do not equate field value to penetration depth.
-3. **Contact manifold:** stable pair IDs, one or more world-space contact points, outward unit normal from A toward B, separation/penetration in length units, local anchors, relative contact velocity, optional feature IDs. Retain and warm-start stable contacts.
-4. **Shared mechanics:** impulse at contact points, inverse mass and world-space inertia, angular velocity, nonpenetration, static and kinetic Coulomb friction, restitution threshold, positional stabilization, island sleeping/waking. Friction must oppose tangential relative velocity and support rest under gravity; do not approximate with unconditional velocity multipliers.
-5. **Material pair resolver:** material IDs on colliders; symmetric pair lookup with explicit overrides and sane defaults. Return coefficients and optional constitutive laws (adhesion, compliance, rolling resistance, yield/fracture, soil compaction). Contact mechanics stays shared; pair-specific resolution may run before/after impulses without bypassing conservation bookkeeping.
-6. **World effects:** return explicit events for terrain deformation, damage, fracture, anchoring, uprooting, BB release, etc. Owning systems commit those changes after the physics step. No implicit mutation inside shape queries.
-
-## Proposed data boundaries (design, not a published API)
-
-- Body: stable id, type (static/dynamic/kinematic), pose, linear/angular velocities, inverse mass, inertia tensor, awake state, colliders.
-- Collider: shape adapter, transform relative to body, material ID, collision group/mask, sensor flag.
-- Contact: body/collider IDs, point(s), normal, signed separation in meters, stable feature IDs.
-- Material: immutable descriptor with density and contact properties. Density determines mass/inertia when a body is built; **mass alone does not create friction**.
-- Pair response: staticFriction, dynamicFriction, restitution, restitutionVelocityThreshold, rollingResistance, compliance, adhesion, and optional event rules. Pair mixing must be deterministic and documented.
-- Event: IDs, contact location/normal, impulse/work, participating materials, proposed state change. Dispatch after solving.
-
-## Initial material interactions (behavioral targets, not tuned constants)
-
-| Pair | Target |
+| Source | Existing contract / limits |
 | --- | --- |
-| Stone / stone | Low restitution; high static friction; stable stacked courses; heavy impacts can topple stacks |
-| Stone / soil | Static friction and terrain support; compaction/deformation only after an explicit soil model exists |
-| Stone / ice | Low friction; sliding remains possible |
-| Wood / stone | Directional friction and compliance; fracture only when material model is enabled |
-| Root / soil | Adhesion and anchored support; uprooting when forces exceed constraints |
+| `shell/arcana/terrain.js` | `createTerrain({topology:'atlas'})`; 85×21×85 signed occupancy grid, positive **inside** solid; 85×85 v2 atlas, 85×85 horizontal extent ±25.2, Y −3.6…3.6; tetrahedral extracted triangle chunks, local re-extraction after impacts/extraction. `sample(x,y,z)` returns interpolated occupancy, **not a guaranteed metric SDF**. |
+| `terrain.atlas.fields` | `jurisdiction`, `gradientWeight`, `elevation`, `substrate`, `hydrology`, `provenance`, `strata`, `population`, `features`; typed arrays. Some are allocated but not meaningfully populated: do not claim that `provenance` is already an operative lineage model. Atlas `substrate` and `features` are initialized for mesas/ridges. |
+| `terrain.materialAt(x,y,z)` | Returns `{id,depth,sourceSubstrate,material}` for derived strata; for positive occupied deposited nodes, returns `{id,depth:0,sourceSubstrate:null,material,lineage}`. **Lineage is conditional**, not guaranteed for every point. Derived layers use substrate and depth, not a constant stone material ID. |
+| `terrain.materials` | IDs 0 neutral bedrock, 1 warm soil, 2 basin sediment, 3 cold regolith, 4 weathered subsoil, 5 deep bedrock. These are existing geological/material identities, not calibrated contact coefficients. Preserve IDs and accounting. |
+| `terrain.deposits` | `Map` of deposited material records keyed by 3D lattice index; may include `lineage`. `extractNodes` preserves material accounting per removed positive lattice node; **node counts are not calibrated volume or mass**. |
+| `terrain.sphereContact(center,radius)` | Returns closest triangle point, outward normal, penetration, `inside`, `materialId`; uses chunk bounds and precomputed triangle AABBs. Existing sphere adapter is not a box manifold nor a universal contact solver. |
+| `terrain.sphereClearance`, `intersectsSphere` | Existing surface proximity/intersection paths; `terrain-surface-query.js` finds top signed-field crossing. Preserve their coordinate/offset semantics. |
+| `terrain.impact`, `extractNodes` | Modify occupancy and rebuild affected chunks. Material mutation/lineage must remain owned by geology, not silently applied inside contact queries. |
+| `physics/wanderer-contacts.js` | `reflectContact`, signed-field gradient normal, vessel underside handling; **no persistent resting contacts**. |
+| `physics/bead-debris.js` | Existing BB collision/capture and ownership changes across terrain, vessel, Abiogenesis and Wanderer. Migration must preserve ownership, coordinate frames and one-way entry behavior. |
+| `codex/strand/brick-rain.js` | 72 beveled Stone & Root bricks; per-brick integration, 8-corner terrain tests, OBB SAT pair checks, simplistic impulses. Known perpetual sliding; prototype only. |
 
-Do not infer physical properties solely from the visual color, shader, or mesh name. Terrain surface material must come from a geology/material query, initially a conservative default.
+**Strand policy:** treat every existing terrain point as **stone for contact response**, including flats, hills and mesas, **without changing** `materialAt`, substrate, stratigraphy, deposited lineage, extraction counts, or atlas values. Implement a **Strand-only physics-material mapping** from existing geological IDs to the stone response. Geological identity ≠ physical response class. Do not globally relabel materials 1–5 as stone.
 
-## Strand migration sequence
+## Canonical queries and data flow
 
-1. Preserve the current Strand brick-rain source and existing world baseline as rollback. Build a **headless deterministic contact test harness** before replacing the Strand solver.
-2. Implement body/material/contact records and the fixed-step scheduler; keep world-specific rendering as a read-only view of physics poses.
-3. Implement OBB–OBB face manifolds and box–terrain contacts with valid separation distances. Add broad-phase culling, sequential impulses with angular inertia, warm starting, positional correction, static/dynamic friction, and stable island sleeping.
-4. Migrate only Strand's bricks and atlas terrain to the shared world. Remove Strand's duplicate brick integrator/solver only once parity is proven. Terrain is a static collider, not a dynamic mesh.
-5. Add material-pair tests and material events. Verify terrain deformation only after its ownership/coordinate contract is explicit.
-6. Instrument contact count, pair count, solver iterations, penetration depth, kinetic energy, sleep/wake transitions, frame cost, and material events.
-7. Only then evaluate migration of BB debris, Wanderer, vessel contacts, creatures, roots, and other worlds individually. Never rewrite their behavior merely to enforce architectural uniformity.
+```text
+terrain occupancy sample / extracted triangles ──> shape adapter ──> contact manifold
+terrain materialAt(point) + optional fields ────> provenance/material sample ─┐
+body collider material identity ──────────────────────────────────────────────┤
+world policy: geological ID -> physical response class ───────────────────────┤
+                                                                             v
+                                           deterministic pair resolver -> shared solver
+                                                                           |
+                                    impulses / sleep / wake + material events
+                                                                           |
+                                     owning terrain/population applies effects
+```
 
-## Acceptance gates
+**Do not create a second terrain material registry as an alternative authority.** A physics registry of response coefficients and pair laws is allowed; it references geological IDs/classes via an explicit adapter. Geometry occupancy, material identity, provenance, and physical response must remain separately queryable.
 
-- A single brick falls, contacts terrain, loses energy, and comes to rest without perpetual creep or penetration.
-- Two bricks and a multi-course pile stack without jitter; contact impulses can wake a sleeping stack when struck.
-- On a shallow stone incline, static friction holds the brick. On an ice incline of the same slope, it slides.
-- A tipped brick rotates under off-center impact and settles according to its actual support polygon.
-- A removed supporting brick can collapse the pile; nothing remains frozen without support.
-- Physics results are reproducible under different render frame rates using a fixed step and deterministic ordering.
-- No NaNs, unbounded energy injection, or runaway contact counts. Preserve existing Arcana consumers until their migration passes explicit regression tests.
-- Read back source, inspect Pages workflow and published build, and distinguish deployment from actual browser verification.
+### Point-sampling contract
 
-## Existing Arcana machinery to preserve
+- `occupancy(point)`: current terrain `sample`, positive solid; never interpret its numeric magnitude as penetration distance. Find actual contact location/separation via surface projection, bracketing or extracted triangles.
+- `materialAt(point)`: existing authoritative lookup; sample at **surface contact points** in terrain coordinates. Preserve `id`, `depth`, `sourceSubstrate`, and optional `lineage`; attach sampled atlas metadata only when meaningful and present. Do not fabricate lineage.
+- `responseAt(point,otherMaterial,context)`: **proposed adapter**, not existing API; maps geological identity to physical class using world policy and resolves pair response. For Strand v1 all terrain IDs map to `stone`; future scalar fields may supply composition, density, moisture, cohesion, temperature, etc. Scalar material fractions must define interpolation, normalization, spatial resolution, and mixing rules explicitly.
+- Spatial frames: terrain collision triangles and material queries use **terrain coordinates**. Wanderer/render offsets are separate. Adapters must convert exactly once; verify against existing `sphereContact` and `sphereClearance` conventions.
+- Material changes are not automatically geometry changes. Excavation/deposition may update occupancy, material records, provenance and chunk revisions together; the terrain owner commits them atomically at a defined step boundary. Invalidate contact caches only for changed spatial regions.
 
-- `physics/wanderer-contacts.js`: gravity, contact reflection, signed-field normal, vessel catch. Its `reflectContact` is an existing lightweight response, **not** a resting-contact solver.
-- `physics/bead-debris.js`: current debris ownership and collision/capture contract. Do not break nested-vessel semantics.
-- `terrain.js` and `terrain-surface-query.js`: authoritative implicit terrain and surface query.
-- `codex/strand/brick-rain.js`: initial visual and OBB SAT prototype. Its sliding/creep is a known limitation; it is the first migration candidate, not the canonical Arcana solver.
+## Shared physics contract (proposed, not public API)
 
-## Next implementation action
+| Layer | Responsibility |
+| --- | --- |
+| Physics world | Fixed-step scheduling, gravity, stable body IDs, broad phase, deterministic candidate ordering, contact cache, sleeping islands, instrumentation. Registered bodies integrate **once**. |
+| Body/collider | Static/dynamic/kinematic body; pose, linear/angular velocity, inverse mass, world inertia; one or more colliders with shape, local pose, material identity, mask and sensor flag. Renderer mirrors physics poses, never drives collision geometry implicitly. |
+| Shape adapters | OBB/convex ↔ convex; sphere ↔ sphere; convex/sphere ↔ terrain; future capsules, compound and deformable interfaces. Return geometrically valid contacts without choosing friction. |
+| Contact manifold | Stable body/collider/feature IDs; normal convention **A → B**; world contact points, local anchors, metric separation (negative overlap), relative velocity, persistent impulse cache, terrain revision. Multiple support points for face contacts. |
+| Shared solver | Normal impulses, angular inertia, restitution threshold, static/kinetic Coulomb friction, friction cone, stabilization without energy injection, warm start, sleep/wake support islands. Stable rest is emergent, not a velocity-freeze hack. |
+| Material pair | Symmetric deterministic lookup with explicit override and documented fallback; static/dynamic friction, restitution, rolling resistance, adhesion, compliance, yield, fracture and optional anisotropy. Use measured/declared units; visual palette is irrelevant. |
+| Material events | Post-solve records of pair IDs, provenance references, point/normal, impulse/work and proposed compaction, damage, fracture, deposition, excavation, anchoring or uprooting. Owning system validates/applies; no mutation during narrow phase. |
 
-Start with an isolated, deterministic, headless **one-box-on-terrain** test and contact data model in `shell/arcana/physics/`. Prove static friction and rest before integrating piles or moving any other world. Avoid new dependencies until the necessary mechanics are understood and measured.
+A single solver contract **does not** mean a heavyweight manifold per particle. Specialized kernels may implement equivalent normal/friction laws and events using cheaper representations. Pair properties must not bypass momentum/energy bookkeeping.
 
-## Scale and performance contract
+## Scale contract
 
-Performance is a design constraint from the first implementation, not a later optimization. **One contact architecture does not imply one solver cost per object.**
+- **Rigid tier:** thousands of bricks/rocks; spatial broad phase (grid/BVH as appropriate), localized static terrain queries, persistent manifolds, sleeping islands, warm starting, stable ordering; **never** global O(N²) pair loops.
+- **Particle tier:** 25k+ BBs; structure-of-arrays typed buffers, spatial bins, batched sphere/field kernels, neighbor-only work, allocation-free hot paths, renderer-independent simulation. No Three.js mesh or generic rigid-body manifold per BB.
+- **Aggregate tier:** validated sleeping/coarse representations for stable granular populations, with localized refinement/waking. Preserve per-BB ownership/identity and extraction semantics when required.
+- **Dense-case caveat:** spatial hashing alone does not make dense clusters cheap; benchmark worst-case occupancy, broad-phase candidate counts, narrow-phase work, cache growth and GC.
+- **Budget and telemetry:** awake/sleeping counts, bodies/particles, candidate pairs, manifolds/contact points, penetrations, kinetic energy, stage CPU timings, allocation pressure, p50/p95/p99 frames, cache hit rates, wake propagation. Fixed timestep and bounded catch-up must not silently omit essential collisions.
 
-- **Rigid-body tier:** thousands of boxes, rocks, structures, and articulated parts use broad-phase candidate generation, persistent manifolds, warm-started impulses, sleeping islands, and awake-only narrow-phase/solver work. Static terrain participates through localized spatial queries, not all-pairs comparisons.
-- **Particle tier:** tens of thousands of BBs or grains use structure-of-arrays/typed-array storage, spatial bins or hashed grids, batched sphere/field queries, and purpose-built neighbor/contact kernels. Do not instantiate one full rigid-body object, Three.js mesh, or generic manifold per BB.
-- **Aggregate tier:** inactive granular populations may use a validated coarse representation, occupancy/heightfield, or bonded cluster where the world semantics permit. Wake or refine only where impacts, extraction, or deformation require individual behavior. Never silently discard BB identity or ownership semantics.
-- **Broad phase:** scale with occupied spatial cells and plausible neighbors, not O(N²) all-pairs. Measure pathological dense clusters as well as sparse populations; spatial hashing alone does not guarantee cheap dense contacts.
-- **Memory and allocation:** preallocate/reuse working buffers and contact records, prefer stable numeric IDs and contiguous storage, and avoid allocations in hot contact loops. Keep renderer state separate from physics state.
-- **Scheduling:** fixed physics step with bounded catch-up, budgets for broad phase/narrow phase/solve, stable deterministic ordering where required, and sleep/wake propagation across support islands. Avoid silently dropping essential collision work to meet a frame budget.
-- **Collision detail:** per-population shape adapters and solver kernels can be specialized, while contact conventions, material-pair laws, event accounting, and telemetry remain shared.
-- **Instrumentation:** measure body/particle counts, awake counts, candidate pairs, actual contacts, solver iterations, CPU time by stage, allocation/GC pressure, and p50/p95/p99 frame cost. Verify correctness and throughput together.
+## Migration & verification gates
 
-### Performance gates
+1. **Preserve rollback.** Existing Strand world and brick source remain untouched until a headless deterministic fixture proves new mechanics. Other worlds and their collision/capture paths remain unchanged.
+2. **Implement shared records and a headless test harness** in `shell/arcana/physics/`. Use a planar stone fixture **only for unit tests**, not as replacement Strand terrain.
+3. **Build terrain adapter around existing APIs:** verify sign convention, coordinates, extracted triangle contact points, true metric separation, materialAt sampling, per-chunk revision/cache invalidation. Avoid whole-terrain scans per body.
+4. **Prove one brick on flat stone, then existing hills/mesas:** gravity, impact, static friction, rest, no creep, correct rotation under off-center load. Preserve Stone & Root geometry/bevel/palette.
+5. **Add brick–brick face manifolds and island sleep:** two bricks, stacked courses, 72 sequential drops, wake on impact, collapse when support removed. Material pair is stone/stone for all current Strand terrain while original geological metadata remains available.
+6. **Demonstrate material policy isolation:** test stone/stone vs stone/ice on same geometry via a test-only mapping; do not overwrite atlas substrate/provenance to manufacture ice.
+7. **Performance gates:** measure 72, 1k, 5k, 10k rigid bodies and separately 25k BBs in sparse, dense and disturbed states. Record hardware, timestep, actual contacts, awake fraction and frame costs. These are targets, **not achieved benchmarks**.
+8. **Migrate selectively:** only after Strand passes, consider BB debris, Wanderer, vessel, roots, creatures and other worlds; preserve ownership, impact accounting and runtime behavior.
+9. **Publication truth:** verify committed source, Pages run, public build SHA and browser execution separately; no runtime claim from documentation alone.
 
-Benchmark a single body, 72 falling bricks, 1k/5k/10k rigid bodies, and a separate 25k-BB scenario with sparse, clustered, and disturbed distributions. Record actual hardware, timestep, frame budget, density, awake fraction, and contact counts before declaring capacity. These are **test workloads, not claims of achieved performance**. Preserve existing BB ownership and capture behavior during any future migration.
+## Explicit non-goals / unresolved decisions
 
-## Terrain decision — Strand stone baseline (2026-11-03)
+- No new global material scalar field now: atlas already has provenance/substrate/strata and `materialAt`. Extend these interfaces when an actual new terrain type needs it.
+- No claim that all atlas channels carry meaningful provenance today; `lineage` is optional and currently deposit-specific.
+- No calibrated material coefficients, soil constitutive model, fracture model, fluid solver or erosion system yet.
+- Decide stable material response IDs, mixed-field interpolation, persistent provenance identifiers, terrain revision API, and deterministic pair mixing **before implementation**; record decisions here rather than scattering competing contracts across worlds.
 
-All existing Strand terrain is **stone**, including flats, hills, mesas, and slopes. Reuse the existing authoritative atlas signed field and surface geometry; do not add a substitute platform to the Strand scene. A separate headless planar fixture remains useful for deterministic unit tests only.
-
-Keep two independent spatial queries: **occupancy** \(\phi(x,y,z)\), already provided by the terrain signed field (positive means solid), and **material** \(M(x,y,z)\), initially a constant stone ID. Future material layers may be scalar fields (density, stone/soil/ice fractions, moisture, cohesion, etc.), sampled at each contact point. Material transitions require deterministic mixing and explicit physical units; do not mistake a field value for geometric distance or infer materials from rendered colors.
-
-The shared contact generator derives geometry, normals, and physically meaningful separation from occupancy. The pair resolver samples material at contact positions and selects the response. For mixed or deformable terrain, owning geology systems handle material state changes after solving. Initial migration target: stone bricks colliding with existing stone terrain, followed by stone–stone piles on actual hills and mesas.
+**Next action:** inspect terrain's existing chunk collision data and materialAt boundary behavior, then implement a headless stone box ↔ terrain adapter with persistent contacts and explicit Strand stone-response mapping. This document is the SST for all future Arcana material/contact decisions.
