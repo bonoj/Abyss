@@ -19,6 +19,33 @@ export function createBrickRain(T,{parent,terrain}){
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
  let spawned=0,clock=0,accumulator=0,steps=0,solverMs=0,solverPeakMs=0,sleepTransitions=0,lastStepSleepTransitions=0;
  const STEP=1/120,MAX_STEPS=8;
+ const pendingBlasts=[];let blastCount=0,lastBlast=null;
+ const core=.9,radius=3.2;
+ const falloff=r=>r>=radius?0:(1/(1+(r/core)**2))*(1-(r/radius)**2)**2;
+ function receiveBlast(event){pendingBlasts.push(event);return true;}
+ function applyBlasts(){
+  while(pendingBlasts.length){
+   const event=pendingBlasts.shift(),point=new T.Vector3(event.point.x,event.point.y,event.point.z);
+   const direct=bodies.find(b=>b.id===event.hit?.bodyId),counts={stone:0,wood:0,ice:0};
+   let totalImpulse=0,woken=0;
+   for(const body of bodies){
+    const delta=body.mesh.position.clone().sub(point),dist=delta.length();
+    if(dist>=radius&&body!==direct)continue;
+    const weight=falloff(dist),isDirect=body===direct;
+    const outward=dist>1e-5?delta.divideScalar(dist):new T.Vector3(0,1,0);
+    outward.y+=.35;outward.normalize();
+    const impulse=18*event.magnitude*(isDirect?0.55:0.30*weight);
+    if(impulse<=0)continue;
+    if(!body.awake){body.awake=true;body.quiet=0;woken++;}
+    body.v.addScaledVector(outward,impulse/body.mass);
+    const arm=isDirect?point.clone().sub(body.mesh.position):outward.clone().multiplyScalar(.12);
+    body.spin.addScaledVector(arm.cross(outward),impulse*body.invI);
+    counts[body.material]++;totalImpulse+=impulse;
+   }
+   lastBlast={point:event.point,hit:event.hit||{kind:'terrain'},radius,core,affected:counts,impulse:totalImpulse,woken,step:steps};blastCount++;
+  }
+ }
+
  function spawn(){
   const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set((rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,(rnd(i*3+2)-.5)*2.2);
@@ -30,7 +57,7 @@ export function createBrickRain(T,{parent,terrain}){
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
-  const start=performance.now();contacts.beginStep();lastStepSleepTransitions=0;
+  const start=performance.now();contacts.beginStep();lastStepSleepTransitions=0;applyBlasts();
   clock+=STEP;
   if(spawned<72&&clock>=.19){clock-=.19;spawn();}
   for(const body of bodies){
@@ -76,7 +103,7 @@ export function createBrickRain(T,{parent,terrain}){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
  }
- return {update,eye:()=>({...eye.snapshot(),sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ return {update,receiveBlast,pickables:()=>bodies.map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),blast:{count:blastCount,last:lastBlast},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
