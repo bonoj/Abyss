@@ -66,6 +66,10 @@ This is the **specific reference to recover**, not the Orthanc moss material and
 
 At the human's explicit direction, the entire decorative tower experiment was deleted. `masonry-tower.js` no longer exists; `world.js` is restored to the original pre-tower composition, and `brick-rain.js` again owns its own original geometry definition. The existing loose physical bricks, their physics, meteor targeting and terrain excavation remain. The rejected approach duplicated bricks as kinematic meshes and added artificial foundation piers and mesh-hiding damage. **Do not resurrect it.** Any future construction must use the actual existing physical bricks and their contact machinery, with relationships/bonds as a separate design question. Historical failure notes remain in Chronicle. No browser witness of the rollback yet.
 
+## Half-size masonry — 2026-11-03
+
+Existing 72 physical bricks halved in geometry, collision, mass and inertia. Meteor energy and radius unchanged. Eye reports peak impact velocity and per-step travel ratio. Browser verification pending. No tower. See Chronicle.
+
 ## Next handoff
 
 **Moss program, pass 1 (source committed 2026-11-03):** masonry rain now spawns with world-space offset `stackOrigin={x:4.5,z:0}` in `brick-rain.js`, code commit [`a33b47de`](https://github.com/bonoj/Abyss/commit/a33b47de2ca0d3a7209f8dd4c858f6e4352793d0). Existing 72 bodies, physics, meteor and terrain remain unchanged. Source readback and initial spawn-center bounds were checked; **Pages/browser and the human's visual composition are not yet verified**. No moss or universal retina/population refactor yet. Full design and this pass's evidence are in [Chronicle](CHRONICLE.md). **The human verified the shifted stack. The subsequent moss prototype was rejected and removed; see rollback above.**
