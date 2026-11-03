@@ -3,7 +3,15 @@
 export function createMaterialSpecimen(T,{parent,surface,terrain}){
  const group=new T.Group();group.name='Strand / cube grammar';parent.add(group);
  const rock=new T.Group();group.add(rock);
- const geometry=new T.IcosahedronGeometry(1,3); // 320 triangular faces; no added detail meshes
+ const base=new T.IcosahedronGeometry(1,3); // 320 triangular faces
+ const positions=base.attributes.position;
+ for(let i=0;i<positions.count;i++){
+  const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+  const h=1+.13*Math.sin(x*5.7+y*2.1)+.09*Math.cos(z*6.3-y*3.4)+.07*Math.sin(x*9.1+z*4.7);
+  positions.setXYZ(i,x*h*1.12,y*h*.86,z*h*.97);
+ }
+ base.computeVertexNormals();
+ const geometry=base; // irregular single stone; no secondary geometry
  const treatments=[
  ['MONUMENT','Warm sun / cool shade'],
  ['NORMAL DETAIL','Monument + procedural surface normals'],
@@ -18,7 +26,7 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  void main(){
  vec3 n=normalize(vNormal),v=normalize(vView),l=normalize(vec3(-.48,.88,.37));
  float detail=sin(vLocal.x*41.)*sin(vLocal.y*37.)*sin(vLocal.z*43.);
- float atten=smoothstep(1.,4.,length(vView));
+ float atten=smoothstep(7.,28.,length(vView));
  if(uMode>0.5 && uMode<1.5 || uMode>2.5 && uMode<3.5){
    vec3 grad=vec3(cos(vLocal.x*41.)*sin(vLocal.y*37.),cos(vLocal.y*37.)*sin(vLocal.z*43.),cos(vLocal.z*43.)*sin(vLocal.x*41.));
    n=normalize(n+grad*.12*(1.-atten));
