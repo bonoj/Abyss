@@ -16,7 +16,7 @@ export function createCinderfall(T,{surface,targets=()=>[],offset=()=>({x:0,z:0}
   const choices=(explicitTarget?[explicitTarget]:targets()).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)&&surface(p.x,p.z)!=null);
   if(!choices.length)return false;
   const target=explicitTarget?choices[0]:choices[Math.floor(rand()*choices.length)],ground=surface(target.x,target.z);
-  const start={x:target.x+(rand()-.5)*2.4,y:ground+10+rand()*3.2,z:target.z+(rand()-.5)*2.4};
+  const start={x:explicitTarget?target.x:target.x+(rand()-.5)*2.4,y:ground+10+rand()*3.2,z:explicitTarget?target.z:target.z+(rand()-.5)*2.4};
   const head=new T.Mesh(headGeometry,headMaterial);heads.add(head);
   active.push({head,start,target:{x:target.x,y:Number.isFinite(target.altitude)?target.altitude:ground+.12,z:target.z},species:target.species||'creature',hit:target.hit||null,age:0,life:.35,lastEmit:0});
   return true;
