@@ -1,5 +1,16 @@
 import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
 import {createStrandEye} from './eye.js';
+// Shared masonry geometry for loose bricks and intact architectural assemblies.
+export function createMasonryGeometry(T){
+ const w=.72,h=.36,d=.44,b=.065;
+ const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
+ s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
+ s.quadraticCurveTo(w/2,h/2,w/2-b,h/2);s.lineTo(-w/2+b,h/2);
+ s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-b);s.lineTo(-w/2,-h/2+b);
+ s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
+ const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
+ return {geo,w,h,d};
+}
 // Original Stone & Root bevel/profile/palette. Independent Strand rigid masonry.
 export function createBrickRain(T,{parent,terrain}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
@@ -8,13 +19,7 @@ export function createBrickRain(T,{parent,terrain}){
  const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true}))};
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
  const stackOrigin={x:4.5,z:0};
- const w=.72,h=.36,d=.44,b=.065;
- const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
- s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
- s.quadraticCurveTo(w/2,h/2,w/2-b,h/2);s.lineTo(-w/2+b,h/2);
- s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-b);s.lineTo(-w/2,-h/2+b);
- s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
- const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
+ const {geo,w,h,d}=createMasonryGeometry(T);
  const half=[w/2+.035,h/2+.035,d/2+.035],bodies=[];
  const contacts=createStoneContacts(T,terrain,half,materials);
  const eye=createStrandEye({bodies,contacts,terrain,stepSeconds:1/120});
