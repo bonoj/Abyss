@@ -8,7 +8,6 @@ import {createCinderfall} from '../../arcana/spells/cinderfall.js';
 import {createMaterialSurvey} from '../../arcana/observation/material-survey.js';
 import {createStrandGeology} from './strand-geology.js';
 import {createBrickRain} from './brick-rain.js';
-import {createMasonryTower} from './masonry-tower.js';
 import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 // Strand shader experiment: keep visual treatments local to this world.
 export function createStrand(){
@@ -18,28 +17,23 @@ export function createStrand(){
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
  const bricks=createBrickRain(T,{parent:world.content,terrain});
- const tower=createMasonryTower(T,{parent:world.content,surface});
- world.placeTower=(x,z)=>tower.place(x,z);
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:event=>{
   const hit=event.hit||{kind:'terrain'};
   bricks.receiveBlast({...event,hit});
-  if(hit.kind==='tower')tower.receiveBlast(event);
   const groundMagnitude=event.magnitude*(hit.kind==='body'?({stone:.65,wood:.35,ice:.48}[hit.material]??.5):1);
   impacts.dispatch({...event,magnitude:groundMagnitude});
-  tower.refreshSupport();
  }});
  const raycaster=new T.Raycaster();let view=null;
- const pickables=()=>{const meshes=[...bricks.pickables(),...tower.pickables()];terrain.group.traverse(o=>{if(o.isMesh)meshes.push(o)});return meshes};
+ const pickables=()=>{const meshes=bricks.pickables();terrain.group.traverse(o=>{if(o.isMesh)meshes.push(o)});return meshes};
  function targetAt(x,z){
   // Meteor descends vertically; nearest collider along its path wins.
   const origin=new T.Vector3(x,16,z);raycaster.set(origin,new T.Vector3(0,-1,0));
   const hits=raycaster.intersectObjects(pickables(),false);
   const first=hits.find(h=>h.point.y>=-3.6);if(!first)return null;
   const body=bricks.bodyForMesh(first.object);
-  const hit=body?{kind:'body',bodyId:body.id,material:body.material}:tower.owns(first.object)?{kind:'tower',material:'stone'}:{kind:'terrain'};
-  return {x:first.point.x,z:first.point.z,altitude:first.point.y,hit};
+  return {x:first.point.x,z:first.point.z,altitude:first.point.y,hit:body?{kind:'body',bodyId:body.id,material:body.material}:{kind:'terrain'}};
  }
  world.targetMeteor=(clientX,clientY)=>{
   if(!view)return false;
@@ -53,5 +47,5 @@ export function createStrand(){
  world.castMeteor=()=>meteor.cast();world.eye=()=>bricks.eye();world.materialSurvey=createMaterialSurvey({populations:[],debris});
  world.update=dt=>{meteor.update(dt);debris.update(dt);bricks.update(dt)};world.attachView=v=>{view=v};
  const inspectVessel=world.inspect.bind(world);
- world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),tower.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),eye:world.eye(),meteorImpact:impacts.inspect()});return world;
+ world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),eye:world.eye(),meteorImpact:impacts.inspect()});return world;
 }
