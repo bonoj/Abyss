@@ -1,3 +1,4 @@
+import {createAccretion} from './accretion.js';
 // Strand architectural material grammar / 2026-11-02.
 // Prior experiments: archive/rock-material-study.js, cube-grammar-study.js, monument-stone-study.js.
 // Single undistorted 4x4 subdivided cube: 6 * 4 * 4 * 2 = 192 triangles.
@@ -6,6 +7,7 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  const group=new T.Group();group.name='Strand / architectural grammar';parent.add(group);
  const specimen=new T.Group();group.add(specimen);
  const geometry=new T.BoxGeometry(1,1,1,4,4,4);
+ const accretion=createAccretion();
  const treatments=[
   ['MONUMENT','Unmodified warm/cool illumination baseline'],
   ['MASONRY','Staggered stone courses and mortar joints'],
@@ -26,7 +28,7 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  }`;
  const fragmentShader=`
  precision highp float;
- uniform float uMode;
+ uniform float uMode;uniform float uMoss;uniform float uSoot;
  varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying vec3 vView;
  float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  void main(){
@@ -69,10 +71,12 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
     // Repaired courses: coherent blocks, not high-frequency scratches.
     float repaired=step(.84,hash21(cell+vec2(21.,9.)));
     stone=mix(stone,stone*vec3(1.17,.98,.79),repaired*.72);
-    // Soot accumulates high on one wall, not uniformly on all faces.
+    // Soot coverage comes from independent combustion reservoir; plume anchors to a source.
     float wall=step(.65,n.z);
-    float soot=wall*smoothstep(.05,.43,vLocal.y)*(1.-smoothstep(.40,.51,abs(vLocal.x)));
-    stone=mix(stone,vec3(.10,.11,.13),soot*.42);
+    float plume=1.-smoothstep(.08,.38,abs(vLocal.x-.12));
+    float above=smoothstep(-.16,.20,vLocal.y);
+    float soot=wall*plume*above*uSoot;
+    stone=mix(stone,vec3(.055,.060,.064),soot*.92);
     float foot=1.-smoothstep(-.48,-.24,vLocal.y);
     stone=mix(stone,stone*vec3(1.16,1.10,1.02),foot*.24);
    }
@@ -80,20 +84,21 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
     // Moss follows damp lower seams; deterministic patches across courses.
     float damp=1.-smoothstep(-.38,.14,vLocal.y);
     float mossPatch=smoothstep(.49,.77,hash21(cell+vec2(13.,31.)));
-    float moss=damp*mossPatch*(.25+.75*mortar);
-    stone=mix(stone,vec3(.18,.28,.17)*(.68+.48*diffuse),moss*.78);
+    float moss=damp*(.4+.6*mossPatch)*(.35+.65*mortar)*uMoss;
+    stone=mix(stone,vec3(.075,.25,.085)*(.6+.45*diffuse),moss*.95);
    }
    col=stone;
   }
   gl_FragColor=vec4(clamp(col,0.,1.),1.);
  }`;
- const material=new T.ShaderMaterial({uniforms:{uMode:{value:0}},vertexShader,fragmentShader});
+ const material=new T.ShaderMaterial({uniforms:{uMode:{value:0},uMoss:{value:0},uSoot:{value:0}},vertexShader,fragmentShader});
  const mesh=new T.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;specimen.add(mesh);
  const beads=Array.from({length:96},(_,i)=>({id:i,mass:1/96}));
  const x=1.6,z=.7,initial=surface(x,z);
  specimen.position.set(x,(initial??0)+2.3,z);
  let velocity=0,settled=false,index=0;
  function update(dt){
+  accretion.update(dt);material.uniforms.uMoss.value=accretion.state.moss;material.uniforms.uSoot.value=accretion.state.soot;
   const step=Math.min(Math.max(dt||0,0),.05),height=surface(specimen.position.x,specimen.position.z);
   const floor=height===null?-Infinity:height+.5;
   if(specimen.position.y>floor+.001){
@@ -103,5 +108,5 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  }
  function current(){return{index:index+1,total:treatments.length,name:treatments[index][0],description:treatments[index][1]}}
  function cycle(){index=(index+1)%treatments.length;material.uniforms.uMode.value=index;return current()}
- return{group,update,cycleTreatment:cycle,currentTreatment:current,inspect:()=>({name:'Strand architectural grammar',treatment:current(),geometry:'one undistorted 192-triangle cube',bbCount:beads.length,bbMass:1,settled,terrainSupport:'single vertical signed-field sample',limitations:'Surface-only architecture: no physical blocks, windows, damage, or multi-point contact'})};
+ return{group,update,cycleTreatment:cycle,currentTreatment:current,inspect:()=>({name:'Strand architectural grammar',treatment:current(),geometry:'one undistorted 192-triangle cube',bbCount:beads.length,bbMass:1,settled,accretion:accretion.inspect(),terrainSupport:'single vertical signed-field sample',limitations:'Surface-only architecture: no physical blocks, windows, damage, or multi-point contact'})};
 }
