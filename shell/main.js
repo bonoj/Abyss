@@ -11,6 +11,21 @@ const world=strand?createStrand():europa?createEuropa():createEntropy();
 globalThis.Athanor.mount(strand?'strand':europa?'europa':'entropy',world);
 world.attachView(globalThis.Athanor.view());
 
+
+if(strand){
+ const button=document.createElement('button');
+ button.type='button';button.textContent='◈';button.title='Next Strand rock treatment';
+ button.setAttribute('aria-label','Next Strand rock material treatment');
+ document.querySelector('#buttons')?.prepend(button);
+ const label=document.createElement('div');
+ label.id='strandMaterialLabel';
+ Object.assign(label.style,{position:'fixed',bottom:'calc(88px + env(safe-area-inset-bottom, 0px))',right:'12px',zIndex:'30',pointerEvents:'none',background:'#07121dcc',color:'#e8f2f6',border:'1px solid #668699',borderRadius:'9px',padding:'7px 10px',font:'600 11px/1.5 system-ui',textAlign:'right'});
+ document.body.append(label);
+ const render=()=>{const t=world.currentTreatment();label.textContent=t.index+'/'+t.total+' · '+t.name+' — '+t.description;button.title='Next treatment: '+t.name};
+ button.addEventListener('click',()=>{world.cycleTreatment();render()});
+ render();
+}
+
 // Explicit, opt-in diagnostic operation; no automatic excavation on boot.
 if(europa)globalThis.europaExtractJSON=(options,recoveryFraction)=>world.extractTestCore(options,recoveryFraction);
 
