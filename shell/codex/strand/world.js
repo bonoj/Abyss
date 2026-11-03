@@ -7,7 +7,6 @@ import {createImpactDispatcher} from '../../arcana/physics/impact-dispatcher.js'
 import {createCinderfall} from '../../arcana/spells/cinderfall.js';
 import {createMaterialSurvey} from '../../arcana/observation/material-survey.js';
 import {createStrandGeology} from './strand-geology.js';
-import {createOrbitalFoundry} from './orbital-foundry.js';
 import {createBrickRain} from './brick-rain.js';
 import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 // Strand shader experiment: keep visual treatments local to this world.
@@ -17,14 +16,12 @@ export function createStrand(){
  const edge=createEquatorialTreatment({terrain,parent:world.content});world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
- const specimen=createOrbitalFoundry(T,{parent:world.content,surface,terrain});
  const bricks=createBrickRain(T,{parent:world.content,terrain});
- world.cycleTreatment=specimen.cycleTreatment;world.currentTreatment=specimen.currentTreatment;
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:impacts.dispatch});
  world.castMeteor=()=>meteor.cast();world.materialSurvey=createMaterialSurvey({populations:[],debris});
- world.update=dt=>{meteor.update(dt);debris.update(dt);specimen.update(dt);bricks.update(dt)};world.attachView=()=>{};
+ world.update=dt=>{meteor.update(dt);debris.update(dt);bricks.update(dt)};world.attachView=()=>{};
  const inspectVessel=world.inspect.bind(world);
- world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),specimen.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),meteorImpact:impacts.inspect()});return world;
+ world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),meteorImpact:impacts.inspect()});return world;
 }
