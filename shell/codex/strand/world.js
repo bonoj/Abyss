@@ -13,7 +13,9 @@ import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 export function createStrand(){
  const world=createHermeticon();world.group.name='Strand';world.content.name='Strand contents';world.group.add(world.content);
  const terrain=createTerrain({topology:'atlas'});world.content.add(terrain.group);world.observationTargets=()=>({terrain:terrain.group});
- const edge=createEquatorialTreatment({terrain,parent:world.content});world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
+ const edge=createEquatorialTreatment({terrain,parent:world.content});
+ world.aperture.setRadius(terrain.getAperture());
+ world.cycleEdge=()=>{const mode=edge.cycle();world.aperture.setRadius(terrain.getAperture());return mode};world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
  const bricks=createBrickRain(T,{parent:world.content,terrain});
@@ -26,12 +28,12 @@ export function createStrand(){
   impacts.dispatch({...event,magnitude:groundMagnitude});
  }});
  const raycaster=new T.Raycaster();let view=null;
- const pickables=()=>{const meshes=bricks.pickables();terrain.group.traverse(o=>{if(o.isMesh)meshes.push(o)});return meshes};
+ const pickables=()=>{const meshes=bricks.pickables().filter(o=>o.visible);terrain.group.traverse(o=>{if(o.isMesh&&o.visible)meshes.push(o)});return meshes};
  function targetAt(x,z){
   // Meteor descends vertically; nearest collider along its path wins.
   const origin=new T.Vector3(x,16,z);raycaster.set(origin,new T.Vector3(0,-1,0));
   const hits=raycaster.intersectObjects(pickables(),false);
-  const first=hits.find(h=>h.point.y>=-3.6);if(!first)return null;
+  const first=hits.find(h=>h.point.y>=-3.6&&h.point.lengthSq()<=world.aperture.radius**2);if(!first)return null;
   const body=bricks.bodyForMesh(first.object);
   return {x:first.point.x,z:first.point.z,altitude:first.point.y,hit:body?{kind:'body',bodyId:body.id,material:body.material}:{kind:'terrain'}};
  }
@@ -40,7 +42,7 @@ export function createStrand(){
   const rect=view.renderer.domElement.getBoundingClientRect();
   const pointer=new T.Vector2((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height*2-1));
   raycaster.setFromCamera(pointer,view.camera);
-  const hit=raycaster.intersectObjects(pickables(),false)[0];
+  const hit=raycaster.intersectObjects(pickables(),false).find(h=>h.point.lengthSq()<=world.aperture.radius**2);
   if(!hit)return false;
   const target=targetAt(hit.point.x,hit.point.z);return target?meteor.cast(target):false;
  };
