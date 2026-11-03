@@ -179,6 +179,7 @@ for(const entry of mounts.values()){
  if(!entry.active||entry.error||typeof entry.source.update!=='function')continue;
  try{entry.source.update(elapsed/1000,now/1000)}catch(error){entry.error=String(error&&error.stack||error);console.error('World update failed: '+entry.id,error)}
 }
+for(const entry of mounts.values())if(entry.source.aperture?.update)entry.source.aperture.update();
 camera.position.set(Math.sin(angle)*Math.cos(elev)*dist,Math.sin(elev)*dist+targetY,Math.cos(angle)*Math.cos(elev)*dist);camera.lookAt(0,targetY,0);edgeDetection.render(scene,camera)}
 requestAnimationFrame(frame);
 }catch(e){window.BaubleFatal(e);console.error(e)}
