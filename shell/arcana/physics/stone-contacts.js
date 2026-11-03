@@ -5,8 +5,9 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
  const axes=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
  const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{},byInterface:{},impulseByInterface:{}};
+ const wake={total:0,byReason:{impact:0},last:null};
  const frame={impulses:0,terrainImpulses:0,bodyImpulses:0,normalImpulse:0,frictionImpulse:0,maxEstimatedDepth:0,depthSum:0,slipSum:0,supportImpulses:0,wakeEvents:0,byInterface:{}};
- function beginStep(){for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
+ function beginStep(){wake.step=(wake.step||0)+1;for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
  function gradient(x,y,z){
@@ -17,14 +18,21 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  function impulse(a,b,n,point,depth,law){
   // A sleeping body is an immovable support until a meaningful relative impact.
   // Wake BEFORE computing effective masses: never inject velocity into a sleeping body.
-  const impactSpeed=Math.abs((b?.v?.clone().sub(a?.v||new T.Vector3())||new T.Vector3()).dot(n));
-  const wakeThreshold=.25;
-  if(a&&!a.awake&&b?.awake&&impactSpeed>wakeThreshold){a.awake=true;a.quiet=0;frame.wakeEvents++;}
-  if(b&&!b.awake&&a?.awake&&impactSpeed>wakeThreshold){b.awake=true;b.quiet=0;frame.wakeEvents++;}
-  const ia=a&&a.awake?1/a.mass:0,ib=b&&b.awake?1/b.mass:0;
-  if(ia+ib===0)return;
   const pa=a?.mesh.position,pb=b?.mesh.position;
   const ra=pa?point.clone().sub(pa):new T.Vector3(),rb=pb?point.clone().sub(pb):new T.Vector3();
+  const velocityAt=(body,arm)=>body?body.v.clone().add(body.spin.clone().cross(arm)):new T.Vector3();
+  const approach=velocityAt(b,rb).sub(velocityAt(a,ra)).dot(n);
+  const wakeThreshold=.25;
+  function wakeBody(body,other){
+   if(!body||body.awake)return;
+   body.awake=true;body.quiet=0;frame.wakeEvents++;wake.total++;wake.byReason.impact++;
+   wake.last={step:wake.step||0,body:body.id??null,source:other?.id??null,approachSpeed:Math.max(0,-approach)};
+  }
+  // Only closing impacts wake resting support; separation and ordinary support do not.
+  if(a&&!a.awake&&b?.awake&&approach< -wakeThreshold)wakeBody(a,b);
+  if(b&&!b.awake&&a?.awake&&approach< -wakeThreshold)wakeBody(b,a);
+  const ia=a&&a.awake?1/a.mass:0,ib=b&&b.awake?1/b.mass:0;
+  if(ia+ib===0)return;
   const va=a?a.v.clone().add(scratch.copy(a.spin).cross(ra)):new T.Vector3();
   const vb=b?b.v.clone().add(scratch.copy(b.spin).cross(rb)):new T.Vector3();
   rv.copy(vb).sub(va);const vn=rv.dot(n);
@@ -105,5 +113,5 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   impulse(a,b,axis,contact,Math.min(depth,.15),response(a.material,b.material));
   stats.pairs++;return true;
  }
- return {terrainBody,pair,stats,frame,beginStep,gravity:g};
+ return {terrainBody,pair,stats,frame,wake,beginStep,gravity:g};
 }
