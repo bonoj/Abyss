@@ -5,8 +5,8 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
  const axes=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
  const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{},byInterface:{},impulseByInterface:{}};
- const frame={impulses:0,terrainImpulses:0,bodyImpulses:0,normalImpulse:0,frictionImpulse:0,maxEstimatedDepth:0,depthSum:0,slipSum:0,supportImpulses:0,byInterface:{}};
- function beginStep(){for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses'])frame[k]=0;frame.byInterface={};}
+ const frame={impulses:0,terrainImpulses:0,bodyImpulses:0,normalImpulse:0,frictionImpulse:0,maxEstimatedDepth:0,depthSum:0,slipSum:0,supportImpulses:0,wakeEvents:0,byInterface:{}};
+ function beginStep(){for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
  function gradient(x,y,z){
@@ -15,21 +15,27 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   return {n:new T.Vector3(nx,ny,nz).multiplyScalar(1/(len||1)),slope:len/(2*eps)};
  }
  function impulse(a,b,n,point,depth,law){
-  const ia=a?1/a.mass:0,ib=b?1/b.mass:0;
+  // A sleeping body is an immovable support until a meaningful relative impact.
+  // Wake BEFORE computing effective masses: never inject velocity into a sleeping body.
+  const impactSpeed=Math.abs((b?.v?.clone().sub(a?.v||new T.Vector3())||new T.Vector3()).dot(n));
+  const wakeThreshold=.25;
+  if(a&&!a.awake&&b?.awake&&impactSpeed>wakeThreshold){a.awake=true;a.quiet=0;frame.wakeEvents++;}
+  if(b&&!b.awake&&a?.awake&&impactSpeed>wakeThreshold){b.awake=true;b.quiet=0;frame.wakeEvents++;}
+  const ia=a&&a.awake?1/a.mass:0,ib=b&&b.awake?1/b.mass:0;
   if(ia+ib===0)return;
   const pa=a?.mesh.position,pb=b?.mesh.position;
   const ra=pa?point.clone().sub(pa):new T.Vector3(),rb=pb?point.clone().sub(pb):new T.Vector3();
   const va=a?a.v.clone().add(scratch.copy(a.spin).cross(ra)):new T.Vector3();
   const vb=b?b.v.clone().add(scratch.copy(b.spin).cross(rb)):new T.Vector3();
   rv.copy(vb).sub(va);const vn=rv.dot(n);
-  const angular=(body,arm,dir)=>body?arm.clone().cross(dir).lengthSq()*body.invI:0;
+  const angular=(body,arm,dir)=>body?.awake?arm.clone().cross(dir).lengthSq()*body.invI:0;
   const denom=ia+ib+angular(a,ra,n)+angular(b,rb,n);
   const restitution=vn< -1.1?law.restitution:0;
   // Baumgarte bias handles resting penetration without velocity-wide damping.
   const j=Math.max(0,(-(1+restitution)*vn+Math.min(.8,Math.max(0,depth-.006)*8))/Math.max(denom,1e-8));
   function apply(dir,magnitude){
-   if(a){a.v.addScaledVector(dir,-magnitude*ia);a.spin.addScaledVector(scratch.copy(ra).cross(dir),-magnitude*a.invI);a.awake=true;}
-   if(b){b.v.addScaledVector(dir,magnitude*ib);b.spin.addScaledVector(scratch.copy(rb).cross(dir),magnitude*b.invI);b.awake=true;}
+   if(a&&a.awake){a.v.addScaledVector(dir,-magnitude*ia);a.spin.addScaledVector(scratch.copy(ra).cross(dir),-magnitude*a.invI);}
+   if(b&&b.awake){b.v.addScaledVector(dir,magnitude*ib);b.spin.addScaledVector(scratch.copy(rb).cross(dir),magnitude*b.invI);}
   }
   apply(n,j);
   const tangent=rv.addScaledVector(n,-vn),speed=tangent.length();
@@ -42,8 +48,8 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   }
   if(depth>.003){
    const correction=Math.min(.08,(depth-.003)*.45)/(ia+ib);
-   if(a)pa.addScaledVector(n,-correction*ia);
-   if(b)pb.addScaledVector(n,correction*ib);
+   if(a&&a.awake)pa.addScaledVector(n,-correction*ia);
+   if(b&&b.awake)pb.addScaledVector(n,correction*ib);
   }
   stats.contacts++;
   frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;
