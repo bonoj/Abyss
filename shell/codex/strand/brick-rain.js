@@ -1,7 +1,7 @@
 import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
 import {createStrandEye} from './eye.js';
 // Original Stone & Root bevel/profile/palette. Independent Strand rigid masonry.
-export function createBrickRain(T,{parent,terrain}){
+export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
  const palette=[0xb4b2a3,0xc9c3ad,0xaaa99f,0xd2c8b0,0x979f9e,0xb9b8ad,0xe0d0b2].map(color=>new T.MeshStandardMaterial({color,roughness:1,flatShading:true}));
  const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06}};
@@ -17,6 +17,7 @@ export function createBrickRain(T,{parent,terrain}){
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
 
  const half=[w/2+bevel,h/2+bevel,d/2+bevel],bodies=[];
+ const entityRadius=Math.hypot(...half);
  const contacts=createStoneContacts(T,terrain,half,materials);
  const eye=createStrandEye({bodies,contacts,terrain,stepSeconds:1/120});
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
@@ -109,8 +110,10 @@ export function createBrickRain(T,{parent,terrain}){
  function update(dt){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
+  // Same per-entity radius predicate as Arcana BB instance packing.
+  for(const body of bodies){const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);}
  }
- return {update,receiveBlast,pickables:()=>bodies.map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ return {update,receiveBlast,pickables:()=>bodies.filter(b=>b.mesh.visible).map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
