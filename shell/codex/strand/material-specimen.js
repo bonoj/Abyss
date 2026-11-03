@@ -79,8 +79,8 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
    if(uMode>3.5&&uMode<4.5||uMode>4.5){
     // Moss follows damp lower seams; deterministic patches across courses.
     float damp=1.-smoothstep(-.38,.14,vLocal.y);
-    float patch=smoothstep(.49,.77,hash21(cell+vec2(13.,31.)));
-    float moss=damp*patch*(.25+.75*mortar);
+    float mossPatch=smoothstep(.49,.77,hash21(cell+vec2(13.,31.)));
+    float moss=damp*mossPatch*(.25+.75*mortar);
     stone=mix(stone,vec3(.18,.28,.17)*(.68+.48*diffuse),moss*.78);
    }
    col=stone;
