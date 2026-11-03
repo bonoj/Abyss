@@ -70,9 +70,9 @@ At the human's explicit direction, the entire decorative tower experiment was de
 
 Existing 72 physical bricks halved in geometry, collision, mass and inertia. Meteor energy and radius unchanged. Eye reports peak impact velocity and per-step travel ratio. Browser verification pending. No tower. See Chronicle.
 
-## Hermeticon inherited aperture — first pass, 2026-11-03
+## Hermeticon entity visibility — reused Arcana BB rule
 
-Athanor now updates each mounted Hermeticon's aperture visibility centrally before rendering. Renderable descendants inherit spherical bounds culling by default; explicit exemption is `object.userData.hermeticonAperture='exempt'`. Strand synchronizes aperture radius with terrain's edge treatment and filters meteor picking. See Chronicle. **Not yet complete clipping:** partially intersecting meshes still render their whole geometry, and instanced populations are culled only as a single renderable. Browser verification pending.
+Hermeticon exposes `visibleEntity(x,y,z,radius)`, the established BB dome rule using the vessel inner radius. Strand bricks and BBs use the same predicate independently per entity; physics continues outside visibility. The invented render traversal and aperture setter were removed. Continuous terrain still uses its own shader aperture. See Chronicle. Browser witness pending.
 
 ## Next handoff
 
