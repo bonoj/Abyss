@@ -56,7 +56,7 @@ export function createStrand(){
   const target=targetAt(hit.point.x,hit.point.z);return target?meteor.cast(target):false;
  };
  world.castMeteor=()=>meteor.cast();world.eye=()=>bricks.eye();world.materialSurvey=createMaterialSurvey({populations:[],debris});
- world.update=dt=>{meteor.update(dt);debris.update(dt);bricks.update(dt)};world.attachView=v=>{view=v};
+ world.update=dt=>{meteor.update(dt);debris.update(dt);bricks.update(dt);syncBrickRetina();retina.update();moss.update(dt)};world.attachView=v=>{view=v};
  const inspectVessel=world.inspect.bind(world);
- world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),eye:world.eye(),meteorImpact:impacts.inspect()});return world;
+ world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),moss.inspect(),retina.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),eye:world.eye(),meteorImpact:impacts.inspect()});return world;
 }
