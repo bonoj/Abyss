@@ -84,3 +84,11 @@ Performance is a design constraint from the first implementation, not a later op
 ### Performance gates
 
 Benchmark a single body, 72 falling bricks, 1k/5k/10k rigid bodies, and a separate 25k-BB scenario with sparse, clustered, and disturbed distributions. Record actual hardware, timestep, frame budget, density, awake fraction, and contact counts before declaring capacity. These are **test workloads, not claims of achieved performance**. Preserve existing BB ownership and capture behavior during any future migration.
+
+## Terrain decision — Strand stone baseline (2026-11-03)
+
+All existing Strand terrain is **stone**, including flats, hills, mesas, and slopes. Reuse the existing authoritative atlas signed field and surface geometry; do not add a substitute platform to the Strand scene. A separate headless planar fixture remains useful for deterministic unit tests only.
+
+Keep two independent spatial queries: **occupancy** \(\phi(x,y,z)\), already provided by the terrain signed field (positive means solid), and **material** \(M(x,y,z)\), initially a constant stone ID. Future material layers may be scalar fields (density, stone/soil/ice fractions, moisture, cohesion, etc.), sampled at each contact point. Material transitions require deterministic mixing and explicit physical units; do not mistake a field value for geometric distance or infer materials from rendered colors.
+
+The shared contact generator derives geometry, normals, and physically meaningful separation from occupancy. The pair resolver samples material at contact positions and selects the response. For mixed or deformable terrain, owning geology systems handle material state changes after solving. Initial migration target: stone bricks colliding with existing stone terrain, followed by stone–stone piles on actual hills and mesas.
