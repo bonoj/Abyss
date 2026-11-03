@@ -7,7 +7,7 @@ import {createImpactDispatcher} from '../../arcana/physics/impact-dispatcher.js'
 import {createCinderfall} from '../../arcana/spells/cinderfall.js';
 import {createMaterialSurvey} from '../../arcana/observation/material-survey.js';
 import {createStrandGeology} from './strand-geology.js';
-import {createMaterialSpecimen} from './material-specimen.js';
+import {createOrbitalFoundry} from './orbital-foundry.js';
 import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 // Strand shader experiment: keep visual treatments local to this world.
 export function createStrand(){
@@ -16,7 +16,7 @@ export function createStrand(){
  const edge=createEquatorialTreatment({terrain,parent:world.content});world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
- const specimen=createMaterialSpecimen(T,{parent:world.content,surface,terrain});
+ const specimen=createOrbitalFoundry(T,{parent:world.content,surface,terrain});
  world.cycleTreatment=specimen.cycleTreatment;world.currentTreatment=specimen.currentTreatment;
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
