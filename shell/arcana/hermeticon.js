@@ -37,7 +37,7 @@ export function createHermeticon(){
  }
  const content=new THREE.Group();content.name='Hermeticon contents';
  let apertureRadius=DEFAULT_APERTURE,culled=0,examined=0,exempt=0;
- const center=new THREE.Vector3(),local=new THREE.Vector3(),scale=new THREE.Vector3();
+ const center=new THREE.Vector3(),local=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion();
  const managed=new Map();
  function updateAperture(){
   // Called centrally by Athanor before rendering, never by individual populations.
@@ -58,7 +58,7 @@ export function createHermeticon(){
    if(!g.boundingSphere){o.visible=state.authored;state.applied=o.visible;return;}
    center.copy(g.boundingSphere.center).applyMatrix4(o.matrixWorld);
    group.worldToLocal(local.copy(center));
-   o.matrixWorld.decompose(center,new THREE.Quaternion(),scale);
+   o.matrixWorld.decompose(center,rotation,scale);
    const radius=g.boundingSphere.radius*Math.max(Math.abs(scale.x),Math.abs(scale.y),Math.abs(scale.z));
    const outside=local.length()-radius>apertureRadius;
    o.visible=state.authored&&!outside;state.applied=o.visible;
