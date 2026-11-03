@@ -26,11 +26,11 @@ export function createStrand(){
   impacts.dispatch({...event,magnitude:groundMagnitude});
  }});
  const raycaster=new T.Raycaster();let view=null;
- const terrainMeshes=[];terrain.group.traverse(o=>{if(o.isMesh)terrainMeshes.push(o)});
+ const pickables=()=>{const meshes=bricks.pickables();terrain.group.traverse(o=>{if(o.isMesh)meshes.push(o)});return meshes};
  function targetAt(x,z){
   // Meteor descends vertically; nearest collider along its path wins.
   const origin=new T.Vector3(x,16,z);raycaster.set(origin,new T.Vector3(0,-1,0));
-  const hits=raycaster.intersectObjects([...bricks.pickables(),...terrainMeshes],false);
+  const hits=raycaster.intersectObjects(pickables(),false);
   const first=hits.find(h=>h.point.y>=-3.6);if(!first)return null;
   const body=bricks.bodyForMesh(first.object);
   return {x:first.point.x,z:first.point.z,altitude:first.point.y,hit:body?{kind:'body',bodyId:body.id,material:body.material}:{kind:'terrain'}};
