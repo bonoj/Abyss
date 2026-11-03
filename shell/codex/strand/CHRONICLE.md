@@ -323,3 +323,11 @@ Corrections: `masonry-tower.js` now offsets alternate courses along wall runs, u
 ## 2026-11-03 — Rejected tower deleted at human request
 
 The tower was a wasted diversion: decorative kinematic meshes, stretched footings, and hidden meshes for meteor damage instead of using existing physical Strand bricks. At explicit human direction, deleted `masonry-tower.js` (`0633f985`), restored `world.js` exactly to its pre-tower blob `3c76d1ea` (`4cac319`), and removed the tower-only shared geometry extraction from `brick-rain.js` (`fae0235`). README corrected (`b4a10e2`). No replacement tower or new construction system. Existing masonry rain, meteor and excavation behavior preserved. Source rollback requires readback; no new browser verification claimed.
+
+## 2026-11-03 — Half-size physical bricks
+
+Authorized experiment: halve the existing 72 physical bricks, retain meteor force and radius, instrument Eye. In `brick-rain.js` linear dimensions change from 0.72×0.36×0.44 to 0.36×0.18×0.22. Bevels and contact half-extents halve. Mass is now 0.625×material density rather than 5×density; inverse rotational inertia follows mass and squared dimensions (32-fold increase). Spatial cell size halves to 0.55, and support-check height offsets halve. Spawn count, spawn positions, gravity, materials, 120 Hz physics and meteor targeting remain.
+
+Meteor radius 3.2, core 0.9 and impulse formula remain unchanged. The same impulse gives an eightfold linear velocity change. Angular response may increase more strongly because rotational inertia falls; the existing 0.12 world-unit radial lever arm remains unchanged for this controlled comparison.
+
+Eye now reports scale, physical dimensions, stone mass, last blast maximum delta-v, lifetime peak delta-v, maximum speed and maximum per-step displacement divided by the smallest brick diameter. A ratio above one warns of potential collision tunneling. Existing kinetic energy, contact, wake and solver timing telemetry remains. Code commits f37d795 and bca8820. Shared contact kernel untouched. Browser rendering, stability and meteor response remain unverified; do not infer runtime success from source commits.
