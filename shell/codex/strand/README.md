@@ -68,6 +68,11 @@ This is the **specific reference to recover**, not the Orthanc moss material and
 
 The foundation uses `createTerrainSurfaceQuery` to sample perimeter and center, places the level group at the highest sampled ground plus a bevel allowance, and exposes `world.placeTower(x,z)` and `world.inspect().systems` tower placement diagnostics. A level, nonpenetrating pose **does not guarantee full support**: valid sample count, near contacts and maximum gap are explicitly reported. This is an initial placement algorithm, not physically simulated settling or certified stability. No browser witness yet. See [Chronicle](CHRONICLE.md) for implementation commits and limits.
 
+
+## Tower correction — 2026-11-03
+
+The first tower was visually rejected: no actual running bond, floating above uneven terrain, and invisible to meteor targeting. Corrective source: [masonry-tower.js](masonry-tower.js) now staggers courses, fills ground gaps with kinematic foundation piers, and exposes tower hit/damage and support refresh. [world.js](world.js) now includes tower bricks in meteor picking and sends tower hits to the tower, while preserving terrain excavation and the loose-brick simulation. **Not yet proven in the browser.** These are visual masonry offsets, terrain-fitted piers and per-stone removal, **not** true structural bonds, dynamic support, or falling fracture debris. [Chronicle](CHRONICLE.md) records the failure and limits.
+
 ## Next handoff
 
 **Moss program, pass 1 (source committed 2026-11-03):** masonry rain now spawns with world-space offset `stackOrigin={x:4.5,z:0}` in `brick-rain.js`, code commit [`a33b47de`](https://github.com/bonoj/Abyss/commit/a33b47de2ca0d3a7209f8dd4c858f6e4352793d0). Existing 72 bodies, physics, meteor and terrain remain unchanged. Source readback and initial spawn-center bounds were checked; **Pages/browser and the human's visual composition are not yet verified**. No moss or universal retina/population refactor yet. Full design and this pass's evidence are in [Chronicle](CHRONICLE.md). **The human verified the shifted stack. The subsequent moss prototype was rejected and removed; see rollback above.**
