@@ -7,7 +7,7 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  const group=new T.Group();group.name='Strand / architectural grammar';parent.add(group);
  const specimen=new T.Group();group.add(specimen);
  const geometry=new T.BoxGeometry(1,1,1,4,4,4);
- const accretion=createAccretion();
+ const accretion=createAccretion(T);
  const treatments=[
   ['MONUMENT','Unmodified warm/cool illumination baseline'],
   ['MASONRY','Staggered stone courses and mortar joints'],
@@ -28,7 +28,7 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
  }`;
  const fragmentShader=`
  precision highp float;
- uniform float uMode;uniform float uMoss;uniform float uSoot;
+ uniform float uMode;uniform sampler2D uAccretion;
  varying vec3 vLocal;varying vec3 vWorld;varying vec3 vNormal;varying vec3 vView;
  float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  void main(){
@@ -71,34 +71,43 @@ export function createMaterialSpecimen(T,{parent,surface,terrain}){
     // Repaired courses: coherent blocks, not high-frequency scratches.
     float repaired=step(.84,hash21(cell+vec2(21.,9.)));
     stone=mix(stone,stone*vec3(1.17,.98,.79),repaired*.72);
-    // Soot coverage comes from independent combustion reservoir; plume anchors to a source.
-    float wall=step(.65,n.z);
-    float plume=1.-smoothstep(.08,.38,abs(vLocal.x-.12));
-    float above=smoothstep(-.16,.20,vLocal.y);
-    float soot=wall*plume*above*uSoot;
-    stone=mix(stone,vec3(.055,.060,.064),soot*.92);
+    // Soot is composited from the independent evolving surface field below.
     float foot=1.-smoothstep(-.48,-.24,vLocal.y);
     stone=mix(stone,stone*vec3(1.16,1.10,1.02),foot*.24);
    }
-   if(uMode>3.5&&uMode<4.5||uMode>4.5){
-    // Moss follows damp lower seams; deterministic patches across courses.
-    float damp=1.-smoothstep(-.38,.14,vLocal.y);
-    float mossPatch=smoothstep(.49,.77,hash21(cell+vec2(13.,31.)));
-    float moss=damp*(.4+.6*mossPatch)*(.35+.65*mortar)*uMoss;
-    stone=mix(stone,vec3(.075,.25,.085)*(.6+.45*diffuse),moss*.95);
+   // The 4 side walls sample a single cellular atlas. Each cell changes over time.
+   if(uMode>2.5){
+    float face=0.;
+    float horizontal=vLocal.x;
+    if(n.z>.5){face=0.;horizontal=vLocal.x;}
+    else if(n.x>.5){face=1.;horizontal=-vLocal.z;}
+    else if(n.z<-.5){face=2.;horizontal=-vLocal.x;}
+    else if(n.x<-.5){face=3.;horizontal=vLocal.z;}
+    vec2 fieldUV=vec2((face+clamp(horizontal+.5,.001,.999))*.25,clamp(vLocal.y+.5,.001,.999));
+    vec4 field=texture2D(uAccretion,fieldUV);
+    float colony=field.g;
+    float soot=field.r;
+    if(uMode>3.5){
+     // Colonies are bright enough to read as growth at miniature scale.
+     float tendril=sin(horizontal*113.+vLocal.y*71.)*.08;
+     float growth=smoothstep(.16,.68,colony+tendril);
+     stone=mix(stone,vec3(.055,.34,.085)*(.65+.55*diffuse),growth*.94);
+    }
+    if((uMode>2.5&&uMode<3.5)||uMode>4.5)
+     stone=mix(stone,vec3(.045,.047,.051),soot*.94);
    }
    col=stone;
   }
   gl_FragColor=vec4(clamp(col,0.,1.),1.);
  }`;
- const material=new T.ShaderMaterial({uniforms:{uMode:{value:0},uMoss:{value:0},uSoot:{value:0}},vertexShader,fragmentShader});
+ const material=new T.ShaderMaterial({uniforms:{uMode:{value:0},uAccretion:{value:accretion.texture}},vertexShader,fragmentShader});
  const mesh=new T.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;specimen.add(mesh);
  const beads=Array.from({length:96},(_,i)=>({id:i,mass:1/96}));
  const x=1.6,z=.7,initial=surface(x,z);
  specimen.position.set(x,(initial??0)+2.3,z);
  let velocity=0,settled=false,index=0;
  function update(dt){
-  accretion.update(dt);material.uniforms.uMoss.value=accretion.state.moss;material.uniforms.uSoot.value=accretion.state.soot;
+  accretion.update(dt);
   const step=Math.min(Math.max(dt||0,0),.05),height=surface(specimen.position.x,specimen.position.z);
   const floor=height===null?-Infinity:height+.5;
   if(specimen.position.y>floor+.001){
