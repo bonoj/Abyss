@@ -14,12 +14,11 @@ export function createStrand(){
  const world=createHermeticon();world.group.name='Strand';world.content.name='Strand contents';world.group.add(world.content);
  const terrain=createTerrain({topology:'atlas'});world.content.add(terrain.group);world.observationTargets=()=>({terrain:terrain.group});
  const edge=createEquatorialTreatment({terrain,parent:world.content});
- world.aperture.setRadius(terrain.getAperture());
- world.cycleEdge=()=>{const mode=edge.cycle();world.aperture.setRadius(terrain.getAperture());return mode};world.edgeMode=edge.getMode;
+ world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
  const landscape=createStrandGeology(T,terrain);
- const bricks=createBrickRain(T,{parent:world.content,terrain});
- const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
+ const bricks=createBrickRain(T,{parent:world.content,terrain,visibleEntity:world.visibleEntity});
+ const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,visibleEntity:world.visibleEntity});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:event=>{
   const hit=event.hit||{kind:'terrain'};
@@ -33,7 +32,7 @@ export function createStrand(){
   // Meteor descends vertically; nearest collider along its path wins.
   const origin=new T.Vector3(x,16,z);raycaster.set(origin,new T.Vector3(0,-1,0));
   const hits=raycaster.intersectObjects(pickables(),false);
-  const first=hits.find(h=>h.point.y>=-3.6&&h.point.lengthSq()<=world.aperture.radius**2);if(!first)return null;
+  const first=hits.find(h=>h.point.y>=-3.6&&world.visibleEntity(h.point.x,h.point.y,h.point.z));if(!first)return null;
   const body=bricks.bodyForMesh(first.object);
   return {x:first.point.x,z:first.point.z,altitude:first.point.y,hit:body?{kind:'body',bodyId:body.id,material:body.material}:{kind:'terrain'}};
  }
