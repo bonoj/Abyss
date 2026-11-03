@@ -70,6 +70,10 @@ At the human's explicit direction, the entire decorative tower experiment was de
 
 Existing 72 physical bricks halved in geometry, collision, mass and inertia. Meteor energy and radius unchanged. Eye reports peak impact velocity and per-step travel ratio. Browser verification pending. No tower. See Chronicle.
 
+## Hermeticon inherited aperture — first pass, 2026-11-03
+
+Athanor now updates each mounted Hermeticon's aperture visibility centrally before rendering. Renderable descendants inherit spherical bounds culling by default; explicit exemption is `object.userData.hermeticonAperture='exempt'`. Strand synchronizes aperture radius with terrain's edge treatment and filters meteor picking. See Chronicle. **Not yet complete clipping:** partially intersecting meshes still render their whole geometry, and instanced populations are culled only as a single renderable. Browser verification pending.
+
 ## Next handoff
 
 **Moss program, pass 1 (source committed 2026-11-03):** masonry rain now spawns with world-space offset `stackOrigin={x:4.5,z:0}` in `brick-rain.js`, code commit [`a33b47de`](https://github.com/bonoj/Abyss/commit/a33b47de2ca0d3a7209f8dd4c858f6e4352793d0). Existing 72 bodies, physics, meteor and terrain remain unchanged. Source readback and initial spawn-center bounds were checked; **Pages/browser and the human's visual composition are not yet verified**. No moss or universal retina/population refactor yet. Full design and this pass's evidence are in [Chronicle](CHRONICLE.md). **The human verified the shifted stack. The subsequent moss prototype was rejected and removed; see rollback above.**
