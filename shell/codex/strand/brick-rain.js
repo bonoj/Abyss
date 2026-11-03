@@ -35,6 +35,7 @@ export function createBrickRain(T,{parent,terrain}){
     const outward=dist>1e-5?delta.divideScalar(dist):new T.Vector3(0,1,0);
     outward.y+=.35;outward.normalize();
     const impulse=18*event.magnitude*(isDirect?0.55:0.30*weight);
+    if(isDirect)outward.set(0,-1,0);
     if(impulse<=0)continue;
     if(!body.awake){body.awake=true;body.quiet=0;woken++;}
     body.v.addScaledVector(outward,impulse/body.mass);
