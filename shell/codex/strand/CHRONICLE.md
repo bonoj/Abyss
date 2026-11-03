@@ -154,3 +154,56 @@ The human tested Strand in the browser after the targeting repair, reporting: �
 **Durable design finding:** Settled populations are not static decoration. Terrain mutation can remove support after a long period of rest, releasing stone, wood and ice into new motion through the contact system. Delayed, causally grounded motion and visible excavation are compelling parts of Strand's intended experience. Preserve localized deformation, existing material response, sleep/wake behavior and the ability to open holes. Avoid unsolicited physics tuning, global terrain rebuilds, or terrain fragment scope expansion. If later investigating, use body-level telemetry to separate genuine contact failures from expected freefall, and define underbelly capture independently.
 
 **Contract recovery:** Protect the working world and the play; distinguish human-witnessed behavior from inferred cause; record the correction without converting it into a burden for the human. This entry is documentation only—no simulation changes or deployment claims.
+
+## 2026-11-03T21:48:00Z — Strand after 466 meteors: excavated underworld, delayed collapse, five visual witnesses
+
+**Provenance and scope.** The human supplied five mobile browser screenshots (4:46–4:47 local, all labeled SHELL build `2a064207`) and a second complete Eye snapshot from build `2a0642070c53c1bb46ff8307c9dcd887f52cdd4c`. These are human-supplied live observations, not a newly run automated test. They extend the earlier 123-blast Eye on the same build and the human's prior confirmation that excavation and delayed drops of wood, ice and stone feel wonderful. This entry is a retrospective witness, not a request to repair, tune or redesign the working world.
+
+### Visual record: five views of the same experiment
+
+1. **Overhead overview (59.9 fps).** A broad pale, low-poly terrain basin holds scattered blue, tan and light-colored rectangular masonry. Repeated impacts have carved overlapping steep-sided cavities and torn-looking openings into the terrain around and under the blocks. The population remains recognizable amid the excavation. The ☄️ tool is visibly selected.
+2. **Low side profile (66.7 fps).** The ground reads as a thin occupied upper crust with deep hanging faceted columns underneath, rather than a mere displaced heightmap. One blue block is visible well below the ground plane, within the Hermeticon volume. This is a visual witness of a fallen body, not proof of a collision defect.
+3. **Close oblique view (101.9 fps).** Large irregular cutouts and steep blue-shaded rock faces coexist with settled, tilted and partially suspended masonry. The edges of openings remain geometrically visible. The camera can inspect the structure from near ground level.
+4. **Underside view (66.3 fps).** Looking up through the vessel reveals isolated hanging terrain formations and a bright cyan-lit lower region with detached-looking faceted features. The image supports the human's description of an exposed underbelly; it does not establish that underbelly capture physics exists.
+5. **Side-on cutaway (59.7 fps).** Several narrow, deeply descending terrain columns and voids support an uneven, populated surface. The visual relationship between upper crust, excavated negative space, and lower shell hardware is unusually clear. Gold edge treatment traces silhouettes and terrain cuts.
+
+**Aesthetic/interaction finding.** The result feels geological and causal, not like pre-authored rubble animation. Terrain is simultaneously visible landscape, structural support, collision substrate and excavatable material. The pleasure is in returning to an apparently settled population and altering the substrate: stone, wood and ice can fall *long after settling* because their support has changed. The human explicitly values both the delayed release and the excavation itself. The underbelly view also reveals a new spatial dimension for observing consequences. Preserve this as a successful experiential primitive.
+
+### Second Eye: prolonged bombardment
+
+| Measure | Observed |
+| --- | --- |
+| Build | `2a0642070c53c1bb46ff8307c9dcd887f52cdd4c` |
+| Snapshot fps | 96.37595 (screenshots separately 59.9, 66.7, 101.9, 66.3, 59.7) |
+| Bodies | 72 total; 24 stone / 24 wood / 24 ice |
+| Awake / sleeping | 45 / 27; stone 11/13, wood 17/7, ice 17/7 |
+| Fixed physics | 29,479 steps × 1/120 s = ~245.66 simulated seconds |
+| Blast count | 466 cumulative; Cinderfall inspect shows only latest 12 |
+| Terrain | 85×21×85, 81 chunks, 121,148 triangles, 1 full rebuild, 455 local rebuilds |
+| Latest local rebuild | 4 dirty chunks, 8,000 rebuilt cells, 16.3 ms |
+| Latest crater | Bare terrain, magnitude 1, radius 1.34, depth .88, rim .195, 59 changed nodes, 4 dirty chunks, crater/surface 16.4 ms |
+| Latest blast | Center (-6.241827,-.433408,-8.409137), radius 3.2, core .9; 0 bodies affected, 0 impulse/wakes at this isolated location |
+| Contact accounting | 5,250,375 terrain calls, 6,831,346 pair calls, 19,044,155 impulse calls, 22,898,597 candidate pairs; cumulative across solver passes, not unique contacts |
+| Wake / sleep history | 23 contact-impact wakes, 459 cumulative sleep transitions; blast wakes tracked separately |
+| Last physics step | 385 impulses (259 terrain, 126 body), 1.6 ms; peak 24.1 ms |
+| Rendering | 18 shader programs, no reported shader errors; edge mode HYBRID |
+| Runtime status | Active Strand mount, error null |
+
+**Temporal comparison with earlier Eye:** blast count 123→466 (+343), local rebuilds 121→455 (+334), physics steps 5,610→29,479 (+23,869), sleep transitions 83→459, contact wakes 12→23. These are two snapshots, not a complete time series. The mismatch between blasts and rebuilds is expected to be possible: not every impact must mutate/rebuild terrain. The latest blast hit terrain near the edge and affected no bodies, demonstrating finite local influence rather than a guaranteed global reaction.
+
+### Unbounded falling: correct interpretation and open question
+
+At the second capture, minY=-201,497.4491, fastestSpeed=1,987.2536, and kinetic energy=46,579,416.29735 (stone 11,929,927.32985; wood 14,038,163.19627; ice 20,611,325.77123). Sample bodies include stone #0 at y=-53,613 with vy=-1,025; ice #2 at y=-176,001 with vy=-1,857; stone #3 at y=-19,297 with vy=-615; stone #6 at y=-52,428 with vy=-1,014. Other sampled bodies remain at y≈1.2–1.4 with small velocities or asleep. Thus the high kinetic energy is dominated by bodies that have left the supported terrain region, **not** evidence that the resting pile is globally exploding.
+
+The human clarified that the Hermeticon has **not yet been configured to capture objects from the underbelly**. Under approximately constant gravity 9.8, a long unbounded fall can accumulate large negative Y and speed. Do not classify this alone as a defect or retroactively undermine the working-world observation. Equally, the snapshots do not prove all transitions were collision-correct; distinguishing a clean loss-of-support fall from tunneling requires targeted per-body traces if that question becomes relevant. Vessel underbelly capture is a separate future design choice; preserve the existing falling experience until intentionally specified.
+
+### Durable implications and boundaries
+
+- **Keep excavation local.** Even after hundreds of impacts the terrain reports one full rebuild and hundreds of bounded local rebuilds; latest impact dirtied four of 81 chunks. Do not exchange this for a full-volume remesh.
+- **Support is a temporal relationship.** Sleep is not permanent ownership of a position. Terrain can change later and release bodies. Preserve delayed responses and their contact-system causality.
+- **Material diversity is visible.** Stone, wood and ice are distinguishable in the same pile and remain subject to the same altered support field; the Eye confirms distinct material populations, but screenshots alone do not calibrate their physical differences.
+- **Geometry matters.** The screenshots demonstrate undercuts, cavities, columns and a viewable underside. This is stronger experiential evidence than a single crater metric, and it motivates future exploration without authorizing new scope.
+- **No invented validation.** The human has witnessed Strand on Android in the browser; Genesis remains untested for this meteor interaction. No automated stress fixture, underbelly capture, terrain fragments, or full impulse conservation proof is claimed.
+- **Protect the play under Sanctum Contract.** Preserve the successful world and record what it feels like. Do not turn a compelling experiment into an urgent optimization or defect list. Future optional inquiries: intentional underbelly behavior, tracing specific falling bodies, and finer contact-support propagation; none is a prerequisite for appreciating or continuing this experiment.
+
+**State:** Documentation-only evidence capture. No runtime source changes.
