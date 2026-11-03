@@ -16,7 +16,7 @@ Strand is Abyss's ancient temperate world inside the existing Hermeticon: weathe
 - Explored terrain tint/height/normal shader treatments. Rejected global bump and tint. Restored Arcana's default terrain material and kept `strand-geology.js` as a neutral no-op; reference commits `06c8bc9f`, `2498f670`, `bd3098c5`. A separate stone specimen became the testbed rather than altering shared terrain.
 - Built a coherent-rock representation study: 96 BB records with unit total mass represented by a single faceted stone; limited gravity/top-surface support, **not** bonded particle dynamics or a collision solver. Reference `fe56ba11`, `a296b7b8`. The current `world.js` **does not mount** this specimen; it remains a historical experiment.
 - Explored Strand/Abyss material palette and runtime shaders. Material studies included Monument, Ink, Porcelain, Relic and Obsidian. Favor procedural materials with geometry-aware shading over a blanket filter.
-- GitHub write reliability: a larger shader write was blocked at tool level; smaller scaffold/update operations succeeded. Do not infer an actual repository policy denial. Use Sanctum CONTRACT and Gate recovery; verify writes and deployment separately.
+- GitHub write reliability: a larger shader write was blocked at tool level; smaller scaffold/update operations succeeded. Do not infer an actual repository policy denial. Use [Sanctum CONTRACT](https://github.com/bonoj/Sanctum/blob/main/CONTRACT.md) and Gate recovery; verify writes and deployment separately.
 
 ### 2026-11-03 — Visual grammar and structural masonry
 
@@ -59,7 +59,7 @@ Strand is Abyss's ancient temperate world inside the existing Hermeticon: weathe
 
 ## Cold boot
 
-Read **this Chronicle → [Strand README](README.md) → [Arcana CONTACTS SST](../../arcana/physics/CONTACTS.md) → [world.js](world.js) → [brick-rain.js](brick-rain.js) → [stone-contacts.js](../../arcana/physics/stone-contacts.js) → [terrain.js](../../arcana/terrain.js)**. Inspect the actual repo head and Pages status before assuming the above remains current. Consult [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and Sanctum CONTRACT for write recovery. Continue from verified source, not the last conversational promise.
+Read **this Chronicle → [Strand README](README.md) → [Arcana CONTACTS SST](../../arcana/physics/CONTACTS.md) → [world.js](world.js) → [brick-rain.js](brick-rain.js) → [stone-contacts.js](../../arcana/physics/stone-contacts.js) → [terrain.js](../../arcana/terrain.js)**. Inspect the actual repo head and Pages status before assuming the above remains current. Consult [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and [Sanctum CONTRACT](https://github.com/bonoj/Sanctum/blob/main/CONTRACT.md) for write recovery. Continue from verified source, not the last conversational promise.
 
 ## 2026-11-03T20:57:07Z — Development cadence and documentation boundaries
 
