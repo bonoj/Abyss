@@ -11,14 +11,14 @@ Ancient temperate world inside the existing Hermeticon: credible weathered geolo
 - Reuse Arcana's vessel, authoritative `createTerrain({topology:'atlas'})`, signed occupancy, geological material/provenance lookup and terrain mutations. Positive occupancy is **not** metric distance.
 - All existing Strand terrain responds as **stone** for initial collisions without rewriting geological substrate IDs, strata or deposited lineage. The [CONTACTS SST](../../arcana/physics/CONTACTS.md) owns all shared physics/material rules.
 - Preserve existing meteor, debris, impact, survey and equatorial-edge behavior. Protect Genesis, Entropy, Europa and Wanderer; Strand remains opt-in.
-- Preserve Stone & Root brick visual geometry. Physics owns body state; rendering is a view. Avoid O(N²) collision scans and heavyweight per-BB solvers.
+- Preserve Stone & Root beveled collider geometry; stone, wood and ice currently share that shape with distinct finishes and illustrative response coefficients. Physics owns body state; rendering is a view. Avoid O(N²) collision scans and heavyweight per-BB solvers.
 - Separate source commits, test results, Pages publication, and actual browser verification. Do not claim settling or performance without measurements.
 
 ## Current composition (source read 2026-11-03)
 
 `world.js` mounts Hermeticon, atlas terrain, equatorial treatment, neutral `strand-geology.js`, `brick-rain.js`, bead debris, impact dispatcher, Cinderfall and material survey. `world.update(dt)` advances meteor, debris and bricks. Earlier `temperate-landscape.js`, isolated material specimen and Orbital Foundry are historical/unmounted experiments, not current runtime features.
 
-`brick-rain.js` now uses [`stone-contacts.js`](../../arcana/physics/stone-contacts.js): fixed 120 Hz steps, local spatial bins, iterative terrain/brick impulses, angular friction and preliminary sleep/wake. **Committed and read back, but browser behavior and stable resting piles remain unverified.** The implementation is not yet the persistent multipoint manifold solver described in CONTACTS.
+`brick-rain.js` drops **stone, wood and ice together** using [`stone-contacts.js`](../../arcana/physics/stone-contacts.js): fixed 120 Hz steps, local spatial bins, material-pair friction/restitution, iterative terrain/body impulses and preliminary sleep/wake. [Strand Eye](eye.js) exposes a read-only `strand-eye/v1` JSON snapshot through `world.eye()` and `world.inspect().eye` (material counts, motion, energy, cumulative pair impulses). **Source committed; browser behavior and stable resting piles remain unverified.** The implementation is not yet the persistent multipoint manifold solver described in CONTACTS.
 
 ## Development cadence (mandatory)
 
@@ -44,6 +44,6 @@ Ancient temperate world inside the existing Hermeticon: credible weathered geolo
 
 ## Next handoff
 
-**Next action:** observe and instrument the actual 72-brick fall/settle on Strand's stone hills and mesas; then implement accurate terrain separation, persistent multipoint contacts and robust sleeping islands. Record measured contact count, penetration, awake bodies, solver cost and browser outcome before declaring success.
+**Next action:** run and inspect `world.eye()` for the 72-body mixed stone/wood/ice pile on hills and mesas; validate imports, material-pair contact counts and awake/energy trends. Then implement metric terrain separation, persistent multipoint contacts, robust sleeping islands and per-step Eye metrics. Record measured contact count, penetration, awake bodies, solver cost and browser outcome before declaring success.
 
-**Cold boot order:** this README → [Chronicle](CHRONICLE.md) → [CONTACTS SST](../../arcana/physics/CONTACTS.md) → [world.js](world.js) → [brick-rain.js](brick-rain.js) → [stone-contacts.js](../../arcana/physics/stone-contacts.js) → [terrain.js](../../arcana/terrain.js). Inspect actual branch head and Pages/build metadata; preserve rollback and use [Gate](https://github.com/bonoj/Gate/blob/main/README.md) / [Sanctum CONTRACT](https://github.com/bonoj/Sanctum/blob/main/CONTRACT.md) on recoverable write failures.
+**Cold boot order:** this README → [Chronicle](CHRONICLE.md) → [CONTACTS SST](../../arcana/physics/CONTACTS.md) → [world.js](world.js) → [brick-rain.js](brick-rain.js) → [eye.js](eye.js) → [stone-contacts.js](../../arcana/physics/stone-contacts.js) → [terrain.js](../../arcana/terrain.js). Inspect actual branch head and Pages/build metadata; preserve rollback and use [Gate](https://github.com/bonoj/Gate/blob/main/README.md) / [Sanctum CONTRACT](https://github.com/bonoj/Sanctum/blob/main/CONTRACT.md) on recoverable write failures.
