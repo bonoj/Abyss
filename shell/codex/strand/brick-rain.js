@@ -1,4 +1,4 @@
-import {WANDERER_PHYSICS as P,reflectContact,signedFieldNormal} from '../../arcana/physics/wanderer-contacts.js';
+import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
 // Original Stone & Root bevel/profile/palette. Independent Strand rigid masonry.
 export function createBrickRain(T,{parent,terrain}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
@@ -11,72 +11,67 @@ export function createBrickRain(T,{parent,terrain}){
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
  const half=[w/2+.035,h/2+.035,d/2+.035],bodies=[];
+ const contacts=createStoneContacts(T,terrain,half);
  const rnd=i=>{const n=Math.sin(i*127.1+1917)*43758.5453;return n-Math.floor(n)};
- let spawned=0,clock=0,terrainHits=0,pairHits=0;
+ let spawned=0,clock=0,accumulator=0,steps=0;
+ const STEP=1/120,MAX_STEPS=8;
  function spawn(){
   const i=spawned++,mesh=new T.Mesh(geo,palette[i%palette.length]);
   mesh.position.set((rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
-  bodies.push({mesh,v:new T.Vector3(0,0,0),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),mass:5});
+  const mass=5;
+  bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
+   mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
- const sample=terrain.sample.bind(terrain),normal=new T.Vector3(),point=new T.Vector3(),rotation=new T.Quaternion();
- function terrainContact(body){
-  const mesh=body.mesh,p=mesh.position;let penetration=0,contact=null;
-  for(let x of [-1,1])for(let y of [-1,1])for(let z of [-1,1]){
-   point.set(x*half[0],y*half[1],z*half[2]).applyQuaternion(mesh.quaternion).add(p);
-   const field=sample(point.x,point.y,point.z);
-   if(field>penetration){penetration=field;const n=signedFieldNormal(sample,point.x,point.y,point.z);contact=new T.Vector3(n.x,n.y,n.z);}
+ const rotation=new T.Quaternion(),axis=new T.Vector3();
+ function step(){
+  clock+=STEP;
+  if(spawned<72&&clock>=.19){clock-=.19;spawn();}
+  for(const body of bodies){
+   if(!body.awake)continue;
+   body.v.y-=contacts.gravity*STEP;
+   body.mesh.position.addScaledVector(body.v,STEP);
+   const speed=body.spin.length();
+   if(speed>1e-7){rotation.setFromAxisAngle(axis.copy(body.spin).divideScalar(speed),speed*STEP);body.mesh.quaternion.premultiply(rotation).normalize();}
   }
-  if(contact){
-   p.addScaledVector(contact,Math.min(.3,penetration+.005));
-   const v={vx:body.v.x,vy:body.v.y,vz:body.v.z};
-   if(reflectContact(v,{x:contact.x,y:contact.y,z:contact.z},P.microRestitution,1-P.microFriction)){
-    body.v.set(v.vx,v.vy,v.vz);body.spin.multiplyScalar(.8);terrainHits++;
+  // Terrain is static; solve contact impulses iteratively alongside brick pairs.
+  // Spatial bins restrict pair checks to local neighborhoods.
+  const cells=new Map(),cellSize=1.1;
+  for(let i=0;i<bodies.length;i++){
+   const p=bodies[i].mesh.position,k=[Math.floor(p.x/cellSize),Math.floor(p.y/cellSize),Math.floor(p.z/cellSize)].join(',');
+   let bucket=cells.get(k);if(!bucket){bucket=[];cells.set(k,bucket);}bucket.push(i);
+  }
+  const candidates=[],seen=new Set();
+  for(let i=0;i<bodies.length;i++){
+   const p=bodies[i].mesh.position,cx=Math.floor(p.x/cellSize),cy=Math.floor(p.y/cellSize),cz=Math.floor(p.z/cellSize);
+   for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    const bucket=cells.get([cx+x,cy+y,cz+z].join(','));if(!bucket)continue;
+    for(const j of bucket){if(j<=i)continue;const key=i+':'+j;if(seen.has(key))continue;seen.add(key);candidates.push([i,j]);}
    }
-   if(contact.y>.7&&body.v.length()<.3){body.v.multiplyScalar(.65);body.spin.multiplyScalar(.7);}
   }
- }
- function collide(a,b){
-  const delta=b.mesh.position.clone().sub(a.mesh.position);if(delta.lengthSq()>2.5)return;
-  const qa=a.mesh.quaternion,qb=b.mesh.quaternion;
-  const unit=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
-  const A=unit.map(v=>v.clone().applyQuaternion(qa)),B=unit.map(v=>v.clone().applyQuaternion(qb));
-  let depth=Infinity,axis=null;
-  function test(n){
-   const len=n.length();if(len<1e-6)return true;n.divideScalar(len);
-   const ra=A.reduce((sum,v,i)=>sum+half[i]*Math.abs(v.dot(n)),0);
-   const rb=B.reduce((sum,v,i)=>sum+half[i]*Math.abs(v.dot(n)),0);
-   const signed=delta.dot(n),overlap=ra+rb-Math.abs(signed);
-   if(overlap<=0)return false;
-   if(overlap<depth){depth=overlap;axis=n.clone().multiplyScalar(signed>=0?1:-1);}return true;
+  for(let pass=0;pass<5;pass++){
+   for(const body of bodies)if(body.awake)contacts.terrainBody(body);
+   for(const [i,j] of candidates)if(bodies[i].awake||bodies[j].awake)contacts.pair(bodies[i],bodies[j]);
   }
-  for(const n of [...A,...B])if(!test(n.clone()))return;
-  for(const x of A)for(const y of B)if(!test(new T.Vector3().crossVectors(x,y)))return;
-  if(!axis)return;
-  a.mesh.position.addScaledVector(axis,-depth*.51);b.mesh.position.addScaledVector(axis,depth*.51);
-  const relative=b.v.clone().sub(a.v),vn=relative.dot(axis);
-  if(vn<0){
-   const impulse=-(1+.1)*vn/(1/a.mass+1/b.mass);
-   a.v.addScaledVector(axis,-impulse/a.mass);b.v.addScaledVector(axis,impulse/b.mass);
-   const tangent=relative.addScaledVector(axis,-vn);
-   a.v.addScaledVector(tangent,.09);b.v.addScaledVector(tangent,-.09);
-   a.spin.multiplyScalar(.9);b.spin.multiplyScalar(.9);pairHits++;
+  // Sleep only after sustained low motion with contact support. Wake on collision.
+  for(const body of bodies){
+   if(!body.awake)continue;
+   const p=body.mesh.position,below=terrain.sample(p.x,p.y-half[1]-.045,p.z)>0;
+   const supported=below||bodies.some(other=>other!==body&&
+    Math.abs(other.mesh.position.x-p.x)<w*.8&&Math.abs(other.mesh.position.z-p.z)<d*.9&&
+    other.mesh.position.y<p.y&&p.y-other.mesh.position.y<h+.09);
+   if(supported&&body.v.lengthSq()<.0009&&body.spin.lengthSq()<.0009)body.quiet++;
+   else body.quiet=0;
+   if(body.quiet>100){body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);}
   }
+  steps++;
  }
  function update(dt){
-  dt=Math.min(.05,Math.max(0,dt||0));clock+=dt;
-  if(spawned<72&&clock>=.19){clock-=.19;spawn();}
-  const count=Math.max(1,Math.ceil(dt/.008)),step=dt/count;
-  for(let k=0;k<count;k++){
-   for(const body of bodies){
-    body.v.y-=P.gravity*step;body.mesh.position.addScaledVector(body.v,step);
-    const speed=body.spin.length();
-    if(speed>.00001){rotation.setFromAxisAngle(body.spin.clone().normalize(),speed*step);body.mesh.quaternion.premultiply(rotation);}
-    terrainContact(body);
-   }
-   for(let pass=0;pass<2;pass++)for(let i=0;i<bodies.length;i++)for(let j=i+1;j<bodies.length;j++)collide(bodies[i],bodies[j]);
-  }
+  accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
+  let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
  }
- return {update,inspect:()=>({name:'Stone & Root brick rain',count:bodies.length,terrainHits,pairHits,mass:5,gravity:P.gravity,terrainRestitution:P.microRestitution,brickRestitution:.1,collision:'signed field + oriented box SAT'})};
+ return {update,inspect:()=>({name:'Stone & Root brick rain',count:bodies.length,awake:bodies.filter(b=>b.awake).length,
+  terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
+  candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana stone contacts / fixed 120Hz / spatial bins'})};
 }
