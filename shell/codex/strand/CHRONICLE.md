@@ -281,3 +281,15 @@ The masonry system currently owns 72 rigid bodies and render meshes, but is not 
 - Any unresolved retina behavior (exact shape, origin, what outside-aperture simulation does, terrain/shell participation) must be settled from **actual source authority** before coding, not guessed from `innerRadius` or `terrain.getAperture()`.
 
 **Human intent preserved:** create room beside the falling masonry to watch moss slowly colonize stone and wood, with living BB texture where useful, under a universal population/3D-retina behavior aperture. The world should continue to be a place where organisms and material respond to the same history, not a showcase of disconnected effects.
+
+## 2026-11-03T22:09:08Z — Moss program pass 1: offset existing masonry rain; await human visual verification
+
+**Authorized scope:** first of two passes only. Move the existing stone/wood/ice brick rain aside, leaving the center open; **do not** create moss, refactor population visibility, or change the retina behavior aperture until the human verifies the composition.
+
+**Source change:** `shell/codex/strand/brick-rain.js` now declares `stackOrigin={x:4.5,z:0}` and adds it directly to each brick's X/Z spawn position. Code commit `a33b47de2ca0d3a7209f8dd4c858f6e4352793d0`, resulting blob `9fbf2941779d43c6ebde370f363f2d3a19a0c6a9`. Existing 72-body count, randomized spread (±1.1 X/Z), heights (6.4–7.6), material rotation, collision/physics, world-space coordinates, meteor target picking, and update cadence are untouched. This is a world-coordinate displacement, not a translated render parent, avoiding disagreement between rendering and contact queries.
+
+**Static geometric check:** using the maximum spawn-center bounds (X=5.6, |Z|=1.1, Y=7.6), maximum initial center radius is approximately 9.504, versus Hermeticon physical inner radius 10.07; initial centers have ~0.566 radial clearance before brick geometry. Horizontal center radius ≤5.708, inside reported terrain aperture 9.92. This is a conservative center-position check, **not** a proof that the full future falling pile remains inside the physical vessel or the separately defined retina behavior aperture. The authoritative retina/population visibility contract is not yet located and is **not** modified in this pass.
+
+**Verification:** remote source readback confirmed offset declaration and use in spawn coordinates, unchanged contact construction. No automated browser/runtime or human visual verification is claimed. No moss implementation, shader edits, population registry migration, new visual elements or global world changes.
+
+**Next:** human opens Strand and verifies the shifted falling stack, landing/settling, meteor targeting, and open center. Only after approval begin pass 2: canonical retina/population visibility investigation and the stone/wood hybrid moss experiment. If composition is unsatisfactory, adjust the one `stackOrigin` constant or restore previous brick-rain blob `600ab82e30c08c4de6857da0c1d3a1e7474decae`.
