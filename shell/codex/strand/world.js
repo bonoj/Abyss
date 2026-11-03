@@ -20,8 +20,8 @@ export function createStrand(){
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content});
  const impacts=createImpactDispatcher({debris,creatures:[],plants:[],terrain,surface});
  const meteor=createCinderfall(T,{surface,offset,targets:()=>[],parent:world.content,radius:terrain.getAperture(),seed:741,onImpact:impacts.dispatch});
- world.castMeteor=()=>meteor.cast();world.materialSurvey=createMaterialSurvey({populations:[],debris});
+ world.castMeteor=()=>meteor.cast();world.eye=()=>bricks.eye();world.materialSurvey=createMaterialSurvey({populations:[],debris});
  world.update=dt=>{meteor.update(dt);debris.update(dt);bricks.update(dt)};world.attachView=()=>{};
  const inspectVessel=world.inspect.bind(world);
- world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),meteorImpact:impacts.inspect()});return world;
+ world.inspect=()=>({name:'Strand',shell:inspectVessel(),systems:[terrain.inspect(),landscape.inspect(),bricks.inspect(),edge.inspect(),meteor.inspect(),debris.inspect()],material:world.materialSurvey(),eye:world.eye(),meteorImpact:impacts.inspect()});return world;
 }
