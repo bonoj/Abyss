@@ -5,6 +5,8 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
  const axes=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
  const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{},byInterface:{},impulseByInterface:{}};
+ const frame={impulses:0,terrainImpulses:0,bodyImpulses:0,normalImpulse:0,frictionImpulse:0,maxEstimatedDepth:0,depthSum:0,slipSum:0,supportImpulses:0,byInterface:{}};
+ function beginStep(){for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
  function gradient(x,y,z){
@@ -35,7 +37,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    tangent.divideScalar(speed);
    const td=ia+ib+angular(a,ra,tangent)+angular(b,rb,tangent);
    const jt=Math.min(j*law.friction,speed/Math.max(td,1e-8));
-   apply(tangent,-jt);
+   frame.frictionImpulse+=jt;apply(tangent,-jt);
   }
   if(depth>.003){
    const correction=Math.min(.08,(depth-.003)*.45)/(ia+ib);
@@ -43,9 +45,12 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    if(b)pb.addScaledVector(n,correction*ib);
   }
   stats.contacts++;
+  frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;frame.slipSum+=speed;
+  if(a&&b)frame.bodyImpulses++;else frame.terrainImpulses++;
+  if(n.y>.55&&j>0)frame.supportImpulses++;
   const key=pairKey(a?.material,b?.material);stats.byPair[key]=(stats.byPair[key]||0)+1;stats.impulseByPair[key]=(stats.impulseByPair[key]||0)+j;
   const iface=a&&b?'body/body':'terrain/body',label=iface+':'+key;
-  stats.byInterface[label]=(stats.byInterface[label]||0)+1;
+  stats.byInterface[label]=(stats.byInterface[label]||0)+1;frame.byInterface[label]=(frame.byInterface[label]||0)+1;
   stats.impulseByInterface[label]=(stats.impulseByInterface[label]||0)+j;
  }
  function terrainBody(body){
@@ -93,5 +98,5 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   impulse(a,b,axis,contact,Math.min(depth,.15),response(a.material,b.material));
   stats.pairs++;return true;
  }
- return {terrainBody,pair,stats,gravity:g};
+ return {terrainBody,pair,stats,frame,beginStep,gravity:g};
 }
