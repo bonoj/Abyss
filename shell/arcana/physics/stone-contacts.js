@@ -4,7 +4,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  const sample=terrain.sample.bind(terrain),g=9.8,eps=.035;
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
  const axes=[new T.Vector3(1,0,0),new T.Vector3(0,1,0),new T.Vector3(0,0,1)];
- const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{}};
+ const stats={terrain:0,pairs:0,contacts:0,candidates:0,byPair:{},impulseByPair:{},byInterface:{},impulseByInterface:{}};
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
  function gradient(x,y,z){
@@ -44,6 +44,9 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   }
   stats.contacts++;
   const key=pairKey(a?.material,b?.material);stats.byPair[key]=(stats.byPair[key]||0)+1;stats.impulseByPair[key]=(stats.impulseByPair[key]||0)+j;
+  const iface=a&&b?'body/body':'terrain/body',label=iface+':'+key;
+  stats.byInterface[label]=(stats.byInterface[label]||0)+1;
+  stats.impulseByInterface[label]=(stats.impulseByInterface[label]||0)+j;
  }
  function terrainBody(body){
   const p=body.mesh.position,q=body.mesh.quaternion;
