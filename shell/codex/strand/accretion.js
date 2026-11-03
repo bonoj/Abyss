@@ -7,7 +7,7 @@ export function createAccretion(T){
  const texture=new T.DataTexture(data,width,height,T.RGBAFormat);
  texture.magFilter=T.LinearFilter;texture.minFilter=T.LinearFilter;texture.wrapS=T.ClampToEdgeWrapping;texture.wrapT=T.ClampToEdgeWrapping;texture.needsUpdate=true;
  let elapsed=0,accumulator=0,ticks=0,events=0;
- const index=(face,x,y)=>y*width+((face+4)%4)*side+((x+side)%side);
+ const index=(face,x,y)=>{const column=((face*side+x)%(width)+width)%width;return y*width+column};
  const hash=(a,b)=>{let v=Math.sin(a*127.1+b*311.7)*43758.5453;return v-Math.floor(v)};
  // Initial colonies: discrete, readable, and on several sides.
  for(const [face,x,y] of [[0,8,2],[1,17,1],[2,26,3],[3,5,2]])moss[index(face,x,y)]=.92;
