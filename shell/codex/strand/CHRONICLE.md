@@ -60,3 +60,15 @@ Strand is Abyss's ancient temperate world inside the existing Hermeticon: weathe
 ## Cold boot
 
 Read **this Chronicle → [Strand README](README.md) → [Arcana CONTACTS SST](../../arcana/physics/CONTACTS.md) → [world.js](world.js) → [brick-rain.js](brick-rain.js) → [stone-contacts.js](../../arcana/physics/stone-contacts.js) → [terrain.js](../../arcana/terrain.js)**. Inspect the actual repo head and Pages status before assuming the above remains current. Consult [Gate](https://github.com/bonoj/Gate/blob/main/README.md) and Sanctum CONTRACT for write recovery. Continue from verified source, not the last conversational promise.
+
+## 2026-11-03T20:57:07Z — Development cadence and documentation boundaries
+
+**Decision:** every meaningful Strand implementation cycle follows **implement → Chronicle update → README update + handoff → cleanup**. All new Chronicle headings use the model's **UTC ISO 8601 timestamp** (`YYYY-MM-DDTHH:mm:ssZ`), obtained at the time of writing, never guessed from local time. Existing date-only historical headings remain historical; do not fabricate precise times retroactively.
+
+**Required entry payload:** timestamp; objective/starting state; changed files and commit SHAs; behavior/contract decisions; validation evidence separated into source readback, automated tests, Pages/build, browser observation; known failures/risks; next action and rollback anchor. Keep entries concise and factual; record failed attempts only when they change recovery or engineering understanding. Append history rather than rewriting outcomes to look successful.
+
+**README boundary:** an operational landing page only—intent, active composition, invariants, SST/Chronicle links, current verified state, one next task, and cold-boot instructions. Do not append experiments, superseded plans, long incident narratives, or stale current-state assertions. Chronicle holds durable decisions, meaningful chronological work and unresolved technical lessons. Incidental and superseded prose with no continuing development value goes into `README.ARCHIVE.md` (historical snapshot), not the active README or an inflated Chronicle.
+
+**Handoff and cleanup gate:** after source changes, read back and record SHA; update Chronicle; refresh README pointers/status and next action; ensure import paths and links are valid, obsolete descriptions are removed, and unrelated worlds remain untouched. Inspect deployment/browser separately and say explicitly when unverified. No undocumented behavior changes during documentation cleanup.
+
+**This cycle:** archived the previous sprawling README in `README.ARCHIVE.md`, then replaced the active README with a compact current-state handoff. This is documentation maintenance only; no physics implementation or runtime verification.
