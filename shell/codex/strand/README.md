@@ -62,16 +62,9 @@ This is the **specific reference to recover**, not the Orthanc moss material and
 
 **Strand direction:** study the shared material-field construction, not its exact look or repetition. Moss may be an evolving property of stone rather than an independent population. BBs remain appropriate for destruction debris or genuinely organic populations; they are not required just to color or weather a stone. No moss implementation is currently mounted, and this reference does not authorize rebuilding the rejected green-disc/cone experiment.
 
-## First intact masonry tower — 2026-11-03
+## Rejected tower experiment removed — 2026-11-03
 
-**Source:** [masonry-tower.js](masonry-tower.js) · shared bevel geometry [brick-rain.js](brick-rain.js) · [composition](world.js). One coherent, movable `T.Group` of existing beveled stone bricks, with hollow perimeter, front doorway, flat lintel and crenellated top, mounted near X=-2.7, Z=0 away from the offset loose masonry rain. **No bespoke arch pieces, external dependency, or second rigid-body simulation.** The group is intentionally kinematic and intact; bond graphs, compound contacts, fracture, worker manipulation and user-facing placement controls are future work.
-
-The foundation uses `createTerrainSurfaceQuery` to sample perimeter and center, places the level group at the highest sampled ground plus a bevel allowance, and exposes `world.placeTower(x,z)` and `world.inspect().systems` tower placement diagnostics. A level, nonpenetrating pose **does not guarantee full support**: valid sample count, near contacts and maximum gap are explicitly reported. This is an initial placement algorithm, not physically simulated settling or certified stability. No browser witness yet. See [Chronicle](CHRONICLE.md) for implementation commits and limits.
-
-
-## Tower correction — 2026-11-03
-
-The first tower was visually rejected: no actual running bond, floating above uneven terrain, and invisible to meteor targeting. Corrective source: [masonry-tower.js](masonry-tower.js) now staggers courses, fills ground gaps with kinematic foundation piers, and exposes tower hit/damage and support refresh. [world.js](world.js) now includes tower bricks in meteor picking and sends tower hits to the tower, while preserving terrain excavation and the loose-brick simulation. **Not yet proven in the browser.** These are visual masonry offsets, terrain-fitted piers and per-stone removal, **not** true structural bonds, dynamic support, or falling fracture debris. [Chronicle](CHRONICLE.md) records the failure and limits.
+At the human's explicit direction, the entire decorative tower experiment was deleted. `masonry-tower.js` no longer exists; `world.js` is restored to the original pre-tower composition, and `brick-rain.js` again owns its own original geometry definition. The existing loose physical bricks, their physics, meteor targeting and terrain excavation remain. The rejected approach duplicated bricks as kinematic meshes and added artificial foundation piers and mesh-hiding damage. **Do not resurrect it.** Any future construction must use the actual existing physical bricks and their contact machinery, with relationships/bonds as a separate design question. Historical failure notes remain in Chronicle. No browser witness of the rollback yet.
 
 ## Next handoff
 
