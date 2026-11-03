@@ -1,5 +1,5 @@
 import {WANDERER_PHYSICS as P,reflectContact,signedFieldNormal,catchVesselUnderside} from './wanderer-contacts.js';
-export function createBeadDebris(T,{terrain,offset,innerRadius,parent,abiogenesis=null,wanderer=null}){
+export function createBeadDebris(T,{terrain,offset,innerRadius,parent,visibleEntity=null,abiogenesis=null,wanderer=null}){
  const geo=new T.IcosahedronGeometry(1,1),mat=new T.MeshStandardMaterial({roughness:.8,metalness:.04});
  let mesh=null,allocated=0;const perf={growths:0,lastGrowthMs:0,peakGrowthMs:0,lastEmitMs:0,peakEmitMs:0,lastPhysicsMs:0,peakPhysicsMs:0,lastRenderMs:0,peakRenderMs:0};
  function ensureMesh(required){if(required<=allocated)return;const t=performance.now();const next=Math.max(required,allocated?allocated*2:256);const replacement=new T.InstancedMesh(geo,mat,next);replacement.frustumCulled=false;replacement.count=0;parent.add(replacement);if(mesh)parent.remove(mesh);mesh=replacement;allocated=next;perf.growths++;perf.lastGrowthMs=performance.now()-t;perf.peakGrowthMs=Math.max(perf.peakGrowthMs,perf.lastGrowthMs);}
@@ -205,7 +205,7 @@ export function createBeadDebris(T,{terrain,offset,innerRadius,parent,abiogenesi
    const x=b.owner==='wanderer'?wc.x+b.x:b.owner==='abiogenesis'?abiogenesis.position.x+b.x:b.x-(b.owner==='terrain'?o.x:0);
    const y=b.owner==='wanderer'?wc.y+b.y:b.owner==='abiogenesis'?abiogenesis.position.y+b.y:b.y;
    const z=b.owner==='wanderer'?wc.z+b.z:b.owner==='abiogenesis'?abiogenesis.position.z+b.z:b.z-(b.owner==='terrain'?o.z:0);
-   if(Math.hypot(x,y,z)+b.r>innerRadius)continue;
+   if(visibleEntity?!visibleEntity(x,y,z,b.r):Math.hypot(x,y,z)+b.r>innerRadius)continue;
    dummy.position.set(x,y,z);dummy.rotation.set(b.rx,b.ry,b.rz);dummy.scale.setScalar(b.r);dummy.updateMatrix();
    mesh.setMatrixAt(n,dummy.matrix);mesh.setColorAt(n,b.color);n++;
   }
