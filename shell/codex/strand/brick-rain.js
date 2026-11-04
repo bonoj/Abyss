@@ -67,6 +67,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   clock+=STEP;
   if(spawned<72&&clock>=.19){clock-=.19;spawn();}
   for(const body of bodies){
+   if(body.carried)continue;
    if(!body.awake)continue;
    body.v.y-=contacts.gravity*STEP;
    const speedNow=body.v.length();maxSpeedObserved=Math.max(maxSpeedObserved,speedNow);
@@ -79,11 +80,13 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   // Spatial bins restrict pair checks to local neighborhoods.
   const cells=new Map(),cellSize=1.1*SCALE;
   for(let i=0;i<bodies.length;i++){
+   if(bodies[i].carried)continue;
    const p=bodies[i].mesh.position,k=[Math.floor(p.x/cellSize),Math.floor(p.y/cellSize),Math.floor(p.z/cellSize)].join(',');
    let bucket=cells.get(k);if(!bucket){bucket=[];cells.set(k,bucket);}bucket.push(i);
   }
   const candidates=[],seen=new Set();
   for(let i=0;i<bodies.length;i++){
+   if(bodies[i].carried)continue;
    const p=bodies[i].mesh.position,cx=Math.floor(p.x/cellSize),cy=Math.floor(p.y/cellSize),cz=Math.floor(p.z/cellSize);
    for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
     const bucket=cells.get([cx+x,cy+y,cz+z].join(','));if(!bucket)continue;
@@ -91,14 +94,14 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
    }
   }
   for(let pass=0;pass<5;pass++){
-   for(const body of bodies)if(body.awake)contacts.terrainBody(body);
+   for(const body of bodies)if(body.awake&&!body.carried)contacts.terrainBody(body);
    for(const [i,j] of candidates)if(bodies[i].awake||bodies[j].awake)contacts.pair(bodies[i],bodies[j]);
   }
   // Sleep only after sustained low motion with contact support. Wake on collision.
   for(const body of bodies){
-   if(!body.awake)continue;
+   if(body.carried||!body.awake)continue;
    const p=body.mesh.position,below=terrain.sample(p.x,p.y-half[1]-.045*SCALE,p.z)>0;
-   const supported=below||bodies.some(other=>other!==body&&
+   const supported=below||bodies.some(other=>other!==body&&!other.carried&&
     Math.abs(other.mesh.position.x-p.x)<w*.8&&Math.abs(other.mesh.position.z-p.z)<d*.9&&
     other.mesh.position.y<p.y&&p.y-other.mesh.position.y<h+.09*SCALE);
    if(supported&&body.v.lengthSq()<.0009&&body.spin.lengthSq()<.0009)body.quiet++;
@@ -113,7 +116,10 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   // Same per-entity radius predicate as Arcana BB instance packing.
   for(const body of bodies){const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);}
  }
- return {update,receiveBlast,pickables:()=>bodies.filter(b=>b.mesh.visible).map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ function claimStone(position,maxDistance=2){let best=null,bestD=maxDistance*maxDistance;for(const body of bodies){if(body.material!=='stone'||body.carried||body.claimed||body.awake)continue;const d=body.mesh.position.distanceToSquared(position);if(d<bestD){best=body;bestD=d;}}if(best)best.claimed=true;return best;}
+ function carryStone(body,position){if(!body||!body.claimed)return false;body.carried=true;body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);body.mesh.position.copy(position);body.mesh.quaternion.identity();return true;}
+ function placeStone(body,position){if(!body||!body.carried)return false;body.mesh.position.copy(position);body.carried=false;body.claimed=false;body.awake=true;body.quiet=0;body.v.set(0,0,0);body.spin.set(0,0,0);return true;}
+ return {claimStone,carryStone,placeStone,update,receiveBlast,pickables:()=>bodies.filter(b=>b.mesh.visible).map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
