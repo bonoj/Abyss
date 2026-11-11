@@ -1,7 +1,7 @@
 # STRAND — Emergent Battlefield Tower Defense
 **Status:** Design specification, not implemented or validated.  
 **Location:** Abyss / Shell / Codex / Strand.  
-**Authority:** Captures the human's stated gameplay direction and the design discussion through 2026-11-11. Proposed engineering choices are explicitly marked; they are not implementation commitments.
+**Document boundary:** BATTLEFIELD-SPEC.md owns speculative gameplay, material taxonomy, hybrid-field concepts, and proposed architecture. `shell/arcana/physics/CONTACTS.md` remains the implementation-facing source of truth for actual contact/material mechanics; do not migrate speculation into CONTACTS before implementation decisions are made. Existing CONTACTS statements are not superseded by this document.\n**Authority:** Captures the human's stated gameplay direction and the design discussion through 2026-11-11. Proposed engineering choices are explicitly marked; they are not implementation commitments.
 
 ## 1. Creative direction
 Stop agonizing over art, attractive assetless models, shaders, and polished environmental presentation. Build the **wonderful mechanics first**; let playable behavior reveal which systems and visuals are necessary. This is tower defense in a deformable, persistent, material world, not conventional lane-based tower defense with decorative scenery. Start with primitive geometry, flat colors, and observable behavior. Do not restart the rejected Strand tower/moss prototype or undertake another material study as a prerequisite.
@@ -96,3 +96,20 @@ Set up:
 
 ## 9. Next action
 Before coding: inspect Strand README and Chronicle, Arcana CONTACTS, world composition, terrain deformation and existing brick/BB contact behavior. Then design and implement the **smallest Bottleneck experiment** with instrumentation and an explicit verification matrix. Let gameplay expose missing systems; resist visual polish and speculative engine construction. Update Chronicle and handoff only when actual development occurs.
+
+## 10. Material expansion — exploratory, not CONTACTS implementation
+
+The existing Strand mixed masonry prototype uses **stone, wood and ice** as rigid-body physical response classes. The human proposes **flesh and metal** as the next macro-materials. Their eventual coefficients, fracture/deformation behavior, and collision representations are not decided. Flesh matters especially for corpses: bodies should remain obstructive but need not behave like rigid wooden bricks. Candidate first approximations include simplified or compound colliders and energy-dissipating contacts; soft-body simulation is not required at the outset. Metal may initially use the existing rigid tier, with alloy-specific behaviors deferred.
+
+**Sand and snow are deferred.** Neither should be naively modeled only as BB particles or only as the terrain occupancy field. Investigate a **hybrid grainy scalar field / layered fields plus discrete entities**, with contact for units of varying mass and surface area. Candidate representations:
+- Bulk material fields: deposited mass, density, packing/compaction, possibly moisture, cohesion and temperature.
+- Active discrete grains/BBs: local transport, separation, scatter, and deposition.
+- Consolidated/supporting surface: efficient contact for resting or moving larger bodies.
+- Explicit, conservative transitions between active grains, aggregate field and supported material; no silent mass creation/loss, and no disconnected visual-versus-physical surfaces.
+- Load response must account for **contact area as well as mass** (pressure is a useful first approximation, not a complete granular constitutive law); varying footprints should alter sinking, support, displacement and compaction.
+
+**Distinct gameplay feel is the criterion:** sand flows/slumps, redistributes and compacts; snow compresses, retains tracks, may crust, cohere and collapse under sufficient load. Do not implement one generic granular material with merely different colors. The same substrate may support both through different constitutive behavior, but that is a hypothesis to test, not an architecture decision.
+
+Potential later interaction: corpses, trees, rocks and structures can settle into, displace, or become buried by granular material, changing traversability. **Water** is a separate future physical medium worth considering; it is not part of the current macro-solid list or first slice. Fire, water, temperature, melting and erosion are optional later causal systems, not requirements now.
+
+**Sequencing:** prove terrain/rigid contact, tree blockade, enemy crowding and corpse accumulation first; introduce flesh/metal only when they advance those mechanics; research sand/snow hybrid fields later. Keep all such speculative choices here in BATTLEFIELD-SPEC. Modify CONTACTS only when implementing/validating contact behavior, with its own evidence and contracts.
