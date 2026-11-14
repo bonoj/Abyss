@@ -10,6 +10,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  function beginStep(){wake.step=(wake.step||0)+1;for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;const soft=a==='flesh'||b==='flesh';return {friction:Math.sqrt(ma.friction*mb.friction),restitution:soft?(a==='flesh'&&b==='flesh'?.025:.045):Math.max(ma.restitution,mb.restitution),soft};}
+ function extents(body){const scale=body?.mesh.scale;return scale?half.map((h,i)=>h*scale.getComponent(i)):half;}
  function gradient(x,y,z){
   const nx=sample(x-eps,y,z)-sample(x+eps,y,z),ny=sample(x,y-eps,z)-sample(x,y+eps,z),nz=sample(x,y,z-eps)-sample(x,y,z+eps);
   const len=Math.hypot(nx,ny,nz);
@@ -59,7 +60,10 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    if(a&&a.awake)pa.addScaledVector(n,-correction*ia);
    if(b&&b.awake)pb.addScaledVector(n,correction*ib);
   }
-  if(law.soft){for(const body of [a,b])if(body?.material==='flesh')body.squash=Math.min(.19,(body.squash||0)+Math.min(.045,j/Math.max(body.mass,.001)*.012));}
+  if(law.soft){for(const body of [a,b])if(body?.material==='flesh'){
+   const impactSpeed=Math.max(0,-vn);
+   if(impactSpeed>.08){body.squashVelocity=Math.min(2.5,(body.squashVelocity||0)+impactSpeed*.14);body.squash=Math.min(.24,(body.squash||0)+Math.min(.025,impactSpeed*.006));}
+  }}
   stats.contacts++;
   frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;
   if(a&&b)frame.bodyImpulses++;else frame.terrainImpulses++;
@@ -70,10 +74,10 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   stats.impulseByInterface[label]=(stats.impulseByInterface[label]||0)+j;
  }
  function terrainBody(body){
-  const p=body.mesh.position,q=body.mesh.quaternion;
+  const p=body.mesh.position,q=body.mesh.quaternion,e=extents(body);
   let hit=false;
   for(let x of [-1,1])for(let y of [-1,1])for(let z of [-1,1]){
-   const corner=new T.Vector3(x*half[0],y*half[1],z*half[2]).applyQuaternion(q).add(p);
+   const corner=new T.Vector3(x*e[0],y*e[1],z*e[2]).applyQuaternion(q).add(p);
    const value=sample(corner.x,corner.y,corner.z);
    if(value<=0)continue;
    const {n,slope}=gradient(corner.x,corner.y,corner.z);
@@ -92,12 +96,13 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   stats.candidates++;
   const A=axes.map(v=>v.clone().applyQuaternion(a.mesh.quaternion));
   const B=axes.map(v=>v.clone().applyQuaternion(b.mesh.quaternion));
+  const ha=extents(a),hb=extents(b);
   let depth=Infinity,axis=null;
   function test(raw){
    const len=raw.length();if(len<1e-6)return true;
    const n=raw.multiplyScalar(1/len);
-   const ra=A.reduce((s,v,i)=>s+half[i]*Math.abs(v.dot(n)),0);
-   const rb=B.reduce((s,v,i)=>s+half[i]*Math.abs(v.dot(n)),0);
+   const ra=A.reduce((s,v,i)=>s+ha[i]*Math.abs(v.dot(n)),0);
+   const rb=B.reduce((s,v,i)=>s+hb[i]*Math.abs(v.dot(n)),0);
    const signed=delta.dot(n),overlap=ra+rb-Math.abs(signed);
    if(overlap<=0)return false;
    if(overlap<depth){depth=overlap;axis=n.clone().multiplyScalar(signed>=0?1:-1);}
@@ -108,8 +113,8 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   for(const x of A)for(const y of B)if(!test(new T.Vector3().crossVectors(x,y)))return false;
   if(!axis)return false;
   // Support point halfway between projected opposing faces, rather than center-to-center.
-  const pa=a.mesh.position.clone().addScaledVector(axis,half[1]);
-  const pb=b.mesh.position.clone().addScaledVector(axis,-half[1]);
+  const pa=a.mesh.position.clone().addScaledVector(axis,ha[1]);
+  const pb=b.mesh.position.clone().addScaledVector(axis,-hb[1]);
   const contact=pa.add(pb).multiplyScalar(.5);
   impulse(a,b,axis,contact,Math.min(depth,.15),response(a.material,b.material));
   stats.pairs++;return true;
