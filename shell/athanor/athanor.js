@@ -131,14 +131,28 @@ function fitBaubleDistance(){const halfV=T.MathUtils.degToRad(camera.fov)/2;cons
 
 const probeButton=document.querySelector('#probe'),probePanel=document.querySelector('#probePanel'),probeText=document.querySelector('#probeText');
 const detailsButton=document.querySelector('#detailsProbe'),copyButton=document.querySelector('#copyProbe');
+let surfaceEvidence=null;
+const surfaceImage=document.createElement('img');
+surfaceImage.alt='GPU-rendered stone material specimen';
+surfaceImage.style.cssText='display:none;width:min(192px,45vw);height:auto;image-rendering:auto;border:1px solid #6b8791;margin:8px 0';
+probePanel.append(surfaceImage);
 let probeFrames=0,probeFrameMs=0,probeLast=performance.now(),displayFps=null;
 const fpsLabel=document.querySelector('#fps');
 function inspectWorld(){
- const report={identity:{build:BUILD,fps:displayFps},mount:{name:mounts.size?'worlds':'empty',children:world.children.length,count:mounts.size,worlds:[...mounts.values()].map(inspectMount)},camera:{azimuth:angle,elevation:elev,distance:dist,targetY,fov:camera.fov,position:camera.position.toArray(),aspect:camera.aspect,near:camera.near,far:camera.far},lighting:{hemisphere:{intensity:scene.children.find(o=>o.isHemisphereLight)?.intensity??null},directional:{intensity:sun.intensity,position:sun.position.toArray()},point:{intensity:blue.intensity,position:blue.position.toArray()}},renderer:{width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()},edgeDetection:edgeDetection.inspect()};
+ const report={surfaceEye:surfaceEvidence,identity:{build:BUILD,fps:displayFps},mount:{name:mounts.size?'worlds':'empty',children:world.children.length,count:mounts.size,worlds:[...mounts.values()].map(inspectMount)},camera:{azimuth:angle,elevation:elev,distance:dist,targetY,fov:camera.fov,position:camera.position.toArray(),aspect:camera.aspect,near:camera.near,far:camera.far},lighting:{hemisphere:{intensity:scene.children.find(o=>o.isHemisphereLight)?.intensity??null},directional:{intensity:sun.intensity,position:sun.position.toArray()},point:{intensity:blue.intensity,position:blue.position.toArray()}},renderer:{width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()},edgeDetection:edgeDetection.inspect()};
  probeText.value=JSON.stringify(report,null,2);return report;
 }
 probeButton.onclick=()=>{
  try{
+  surfaceEvidence=null;surfaceImage.style.display='none';
+  const surfaceWorld=[...mounts.values()].find(m=>m.active&&typeof m.source.captureSurface==='function');
+  if(surfaceWorld){
+   try{
+    const captured=surfaceWorld.source.captureSurface();
+    if(captured.preview){surfaceImage.src=captured.preview;surfaceImage.style.display='block';}
+    const {preview,...evidence}=captured;surfaceEvidence=evidence;
+   }catch(error){surfaceEvidence={error:String(error)}}
+  }
   const snapshot=JSON.stringify(inspectWorld(),null,2);
   if(!snapshot)throw Error('Empty inspection');
   const legacyCopy=()=>{
