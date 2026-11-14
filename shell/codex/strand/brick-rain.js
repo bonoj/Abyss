@@ -15,6 +15,8 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-b);s.lineTo(-w/2,-h/2+b);
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
+ // Same rounded brick profile for flesh, with more vertices for local dents.
+ const fleshGeo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:3,curveSegments:8,steps:8});fleshGeo.translate(0,0,-d/2);
 
  const half=[w/2+bevel,h/2+bevel,d/2+bevel],bodies=[];
  const entityRadius=Math.hypot(...half);
@@ -53,7 +55,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  }
 
  function spawn(){
-  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(kind==='flesh'?new T.BoxGeometry(w,h,d,8,4,6):geo,finishes[kind][i%finishes[kind].length]);
+  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
