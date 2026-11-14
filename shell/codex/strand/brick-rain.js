@@ -76,6 +76,15 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
    const speed=body.spin.length();
    if(speed>1e-7){rotation.setFromAxisAngle(axis.copy(body.spin).divideScalar(speed),speed*STEP);body.mesh.quaternion.premultiply(rotation).normalize();}
   }
+  // Fixed-step viscoelastic strain: contact impulses compress flesh; a damped spring restores it.
+  for(const body of bodies)if(body.material==='flesh'){
+    const acceleration=-(42*(body.squash||0)+12*(body.squashVelocity||0));
+    body.squashVelocity=(body.squashVelocity||0)+acceleration*STEP;
+    body.squash=Math.max(0,Math.min(.24,(body.squash||0)+body.squashVelocity*STEP));
+    if(body.squash===0)body.squashVelocity=0;
+    const c=body.squash;
+    body.mesh.scale.set(1+c*.32,1-c,1+c*.32);
+  }
   // Terrain is static; solve contact impulses iteratively alongside brick pairs.
   // Spatial bins restrict pair checks to local neighborhoods.
   const cells=new Map(),cellSize=1.1*SCALE;
@@ -116,15 +125,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   // Same per-entity radius predicate as Arcana BB instance packing.
   for(const body of bodies){
    if(body.material==='flesh'){
-    // The deforming collider and rendered geometry share the same strain state.
-    // A damped second-order recovery allows visible yielding without permanent collapse.
-    const h=Math.max(0,Math.min(.05,dt||0));
-    const acceleration=-(42*(body.squash||0)+12*(body.squashVelocity||0));
-    body.squashVelocity=(body.squashVelocity||0)+acceleration*h;
-    body.squash=Math.max(0,Math.min(.24,(body.squash||0)+body.squashVelocity*h));
-    if(body.squash===0)body.squashVelocity=0;
-    const c=body.squash;
-    body.mesh.scale.set(1+c*.32,1-c,1+c*.32);
+    // Deformation is advanced in fixed physics steps; rendering reads that state.
    }
    const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);
   }
