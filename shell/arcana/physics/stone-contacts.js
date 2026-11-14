@@ -63,7 +63,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   if(law.soft&&vn<-.12&&j>0){
    // A contact is a world-space event. Convert it into the struck brick's
    // local frame, keeping the indentation attached as the brick rotates.
-   for(const [body,sign] of [[a,1],[b,-1]])if(body?.material==='flesh'&&body.indentations){
+   for(const [body,sign] of [[a,-1],[b,1]]if(body?.material==='flesh'&&body.indentations){
     const inverse=body.mesh.quaternion.clone().invert();
     const localPoint=point.clone().sub(body.mesh.position).applyQuaternion(inverse);
     const localNormal=n.clone().multiplyScalar(sign).applyQuaternion(inverse);
