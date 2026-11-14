@@ -9,12 +9,12 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06},flesh:{density:.9,friction:1.05,restitution:.035}};
  const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true})),flesh:[0x9d5d64,0xb77579,0x824b57,0xc48c88].map(color=>new T.MeshStandardMaterial({color,roughness:.79,metalness:0}))};
  const originalIceFinishes=finishes.ice;
- const frostBacklitIce=createFrostBacklitIce(T);
- // Preserve the original finish palette as an independently selectable material.
- finishes.ice=[frostBacklitIce];
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
  const stackOrigin={x:4.5,z:0};
  const SCALE=.5, w=.72*SCALE,h=.36*SCALE,d=.44*SCALE,b=.065*SCALE,bevel=.035*SCALE;
+ const frostBacklitIce=createFrostBacklitIce(T,[w/2+bevel,h/2+bevel,d/2+bevel]);
+ // Preserve the original palette; only active ice bricks receive the JIT finish.
+ finishes.ice=[frostBacklitIce];
  const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
  s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
  s.quadraticCurveTo(w/2,h/2,w/2-b,h/2);s.lineTo(-w/2+b,h/2);
