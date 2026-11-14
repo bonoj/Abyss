@@ -10,7 +10,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  function beginStep(){wake.step=(wake.step||0)+1;for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
  function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;const soft=a==='flesh'||b==='flesh';return {friction:Math.sqrt(ma.friction*mb.friction),restitution:soft?(a==='flesh'&&b==='flesh'?.025:.045):Math.max(ma.restitution,mb.restitution),soft};}
- function extents(body){const scale=body?.mesh.scale;return scale?half.map((h,i)=>h*scale.getComponent(i)):half;}
+ function extents(body){return half;}
  function gradient(x,y,z){
   const nx=sample(x-eps,y,z)-sample(x+eps,y,z),ny=sample(x,y-eps,z)-sample(x,y+eps,z),nz=sample(x,y,z-eps)-sample(x,y,z+eps);
   const len=Math.hypot(nx,ny,nz);
@@ -60,10 +60,23 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    if(a&&a.awake)pa.addScaledVector(n,-correction*ia);
    if(b&&b.awake)pb.addScaledVector(n,correction*ib);
   }
-  if(law.soft){for(const body of [a,b])if(body?.material==='flesh'){
-   const impactSpeed=Math.max(0,-vn);
-   if(impactSpeed>.08){body.squashVelocity=Math.min(2.5,(body.squashVelocity||0)+impactSpeed*.14);body.squash=Math.min(.24,(body.squash||0)+Math.min(.025,impactSpeed*.006));}
-  }}
+  if(law.soft&&vn<-.12&&j>0){
+   // A contact is a world-space event. Convert it into the struck brick's
+   // local frame, keeping the indentation attached as the brick rotates.
+   for(const [body,sign] of [[a,1],[b,-1]])if(body?.material==='flesh'&&body.indentations){
+    const inverse=body.mesh.quaternion.clone().invert();
+    const localPoint=point.clone().sub(body.mesh.position).applyQuaternion(inverse);
+    const localNormal=n.clone().multiplyScalar(sign).applyQuaternion(inverse);
+    // Clamp the approximate SAT support point to the actual brick envelope.
+    localPoint.set(Math.max(-half[0],Math.min(half[0],localPoint.x)),Math.max(-half[1],Math.min(half[1],localPoint.y)),Math.max(-half[2],Math.min(half[2],localPoint.z)));
+    const depth=Math.min(.012,Math.max(0,-vn)*.0015);
+    if(depth>0){
+     const existing=body.indentations.find(d=>d.point.distanceToSquared(localPoint)<.003);
+     if(existing){existing.depth=Math.min(.035,existing.depth+depth);existing.age=0;}
+     else {body.indentations.push({point:localPoint,normal:localNormal,depth,age:0});if(body.indentations.length>8)body.indentations.shift();}
+    }
+   }
+  }
   stats.contacts++;
   frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;
   if(a&&b)frame.bodyImpulses++;else frame.terrainImpulses++;
