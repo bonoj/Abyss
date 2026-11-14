@@ -1,6 +1,7 @@
 import {createStoneContacts} from '../../arcana/physics/stone-contacts.js';
 import {createStrandEye} from './eye.js';
 import {createStrandIce} from './strand-ice.js';
+import {createStrandWood} from './strand-wood.js';
 // Original Stone & Root bevel/profile/palette. Independent Strand rigid masonry.
 export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
@@ -9,12 +10,15 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06},flesh:{density:.9,friction:1.05,restitution:.035}};
  const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true})),flesh:[0x9d5d64,0xb77579,0x824b57,0xc48c88].map(color=>new T.MeshStandardMaterial({color,roughness:.79,metalness:0}))};
  const originalIceFinishes=finishes.ice;
+ const originalWoodFinishes=finishes.wood;
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
  const stackOrigin={x:4.5,z:0};
  const SCALE=.5, w=.72*SCALE,h=.36*SCALE,d=.44*SCALE,b=.065*SCALE,bevel=.035*SCALE;
  const strandIce=createStrandIce(T,{frost:.33,backlight:.66,bubbles:false});
  // Preserve the original palette; active ice bricks use StrandIce / 01.
  finishes.ice=[strandIce];
+ const strandWood=createStrandWood(T);
+ finishes.wood=[strandWood];
  const s=new T.Shape();s.moveTo(-w/2+b,-h/2);s.lineTo(w/2-b,-h/2);
  s.quadraticCurveTo(w/2,-h/2,w/2,-h/2+b);s.lineTo(w/2,h/2-b);
  s.quadraticCurveTo(w/2,h/2,w/2-b,h/2);s.lineTo(-w/2+b,h/2);
@@ -159,7 +163,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  function claimStone(position,maxDistance=2){let best=null,bestD=maxDistance*maxDistance;for(const body of bodies){if(body.material!=='stone'||body.carried||body.claimed||body.awake)continue;const d=body.mesh.position.distanceToSquared(position);if(d<bestD){best=body;bestD=d;}}if(best)best.claimed=true;return best;}
  function carryStone(body,position){if(!body||!body.claimed)return false;body.carried=true;body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);body.mesh.position.copy(position);body.mesh.quaternion.identity();return true;}
  function placeStone(body,position){if(!body||!body.carried)return false;body.mesh.position.copy(position);body.carried=false;body.claimed=false;body.awake=true;body.quiet=0;body.v.set(0,0,0);body.spin.set(0,0,0);return true;}
- return {claimStone,carryStone,placeStone,update,receiveBlast,pickables:()=>bodies.filter(b=>b.mesh.visible).map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',iceFinish:{active:strandIce.name,originalAvailable:originalIceFinishes.map(m=>m.color.getHexString()),frost:.33,backlight:.66,bubbles:false},scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
+ return {claimStone,carryStone,placeStone,update,receiveBlast,pickables:()=>bodies.filter(b=>b.mesh.visible).map(b=>b.mesh),bodyForMesh:mesh=>bodies.find(b=>b.mesh===mesh)||null,eye:()=>({...eye.snapshot(),scale:{linear:SCALE,dimensions:[w,h,d],halfExtents:half,massStone:5*Math.pow(SCALE,3),fixedStepSeconds:STEP},blast:{count:blastCount,last:lastBlast,maxDeltaV:maxBlastDeltaV,maxSpeedObserved,maxStepTravelRatio,warning:maxStepTravelRatio>1?'Per-step travel exceeded smallest brick diameter: possible tunneling':null},sleepTransitions:{total:sleepTransitions,lastStep:lastStepSleepTransitions},timing:{lastStepMs:solverMs,peakStepMs:solverPeakMs}}),inspect:()=>({name:'Strand mixed masonry rain',woodFinish:{active:strandWood.name,originalAvailable:originalWoodFinishes.map(m=>m.color.getHexString())},iceFinish:{active:strandIce.name,originalAvailable:originalIceFinishes.map(m=>m.color.getHexString()),frost:.33,backlight:.66,bubbles:false},scale:SCALE,dimensions:[w,h,d],count:bodies.length,materials:Object.fromEntries(Object.keys(materials).map(k=>[k,bodies.filter(b=>b.material===k).length])),awake:bodies.filter(b=>b.awake).length,
   terrainHits:contacts.stats.terrain,pairHits:contacts.stats.pairs,contactPoints:contacts.stats.contacts,
   candidatePairs:contacts.stats.candidates,steps,gravity:contacts.gravity,collision:'Arcana mixed-material contacts / fixed 120Hz / spatial bins'})};
 }
