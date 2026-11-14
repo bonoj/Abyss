@@ -4,6 +4,7 @@ import {createStrandEye} from './eye.js';
 export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
  const palette=[0xb4b2a3,0xc9c3ad,0xaaa99f,0xd2c8b0,0x979f9e,0xb9b8ad,0xe0d0b2].map(color=>new T.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+ // Flesh is retained for future evaluation, but excluded from the active rain.
  const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06},flesh:{density:.9,friction:1.05,restitution:.035}};
  const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true})),flesh:[0x9d5d64,0xb77579,0x824b57,0xc48c88].map(color=>new T.MeshStandardMaterial({color,roughness:.79,metalness:0}))};
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
@@ -55,7 +56,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  }
 
  function spawn(){
-  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finishes[kind][i%finishes[kind].length]);
+  const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
