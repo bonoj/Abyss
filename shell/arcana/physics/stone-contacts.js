@@ -1,5 +1,9 @@
 // Arcana stone contact kernel. Coordinates are terrain-space; positive field is solid.
 // Body: {mesh,v,spin,mass,invI,awake,quiet}; contact normal points from A to B.
+// FLESH EXPERIMENT (inactive in Strand rain): contact-local indentation and its
+// material response are retained for study, NOT validated for production use.
+// Do not re-enable flesh spawning without evaluating visual deformation,
+// contact accuracy, recovery, and frame cost, then adjusting the model.
 export function createStoneContacts(T,terrain,half,materials={stone:{friction:.82,restitution:.09}}){
  const sample=terrain.sample.bind(terrain),g=9.8,eps=.035;
  const scratch=new T.Vector3(),r=new T.Vector3(),rv=new T.Vector3(),t=new T.Vector3();
