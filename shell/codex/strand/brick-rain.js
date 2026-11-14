@@ -53,13 +53,13 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  }
 
  function spawn(){
-  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
+  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(kind==='flesh'?geo.clone():geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*Math.pow(SCALE,3)*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
-   id:i,material:kind,squash:0,squashVelocity:0,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
+   id:i,material:kind,indentations:[],restPositions:kind==='flesh'?new Float32Array(mesh.geometry.attributes.position.array):null,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
@@ -76,14 +76,31 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
    const speed=body.spin.length();
    if(speed>1e-7){rotation.setFromAxisAngle(axis.copy(body.spin).divideScalar(speed),speed*STEP);body.mesh.quaternion.premultiply(rotation).normalize();}
   }
-  // Fixed-step viscoelastic strain: contact impulses compress flesh; a damped spring restores it.
+  // Localized, contact-driven surface strain. Every flesh brick owns its vertices.
+  // Existing dents decay with a damped recovery; nearby vertices displace along the
+  // incoming contact normal, so a corner strike cannot flatten the whole brick.
   for(const body of bodies)if(body.material==='flesh'){
-    const acceleration=-(42*(body.squash||0)+12*(body.squashVelocity||0));
-    body.squashVelocity=(body.squashVelocity||0)+acceleration*STEP;
-    body.squash=Math.max(0,Math.min(.24,(body.squash||0)+body.squashVelocity*STEP));
-    if(body.squash===0)body.squashVelocity=0;
-    const c=body.squash;
-    body.mesh.scale.set(1+c*.32,1-c,1+c*.32);
+   for(const dent of body.indentations){
+    dent.age+=STEP;
+    dent.depth=Math.max(0,dent.depth*Math.exp(-STEP*5.5));
+   }
+   body.indentations=body.indentations.filter(dent=>dent.depth>.00015&&dent.age<1.5);
+   const pos=body.mesh.geometry.attributes.position,rest=body.restPositions;
+   const radius=.105,invRadius2=1/(2*radius*radius);
+   for(let i=0;i<pos.count;i++){
+    const x=rest[i*3],y=rest[i*3+1],z=rest[i*3+2];
+    let dx=0,dy=0,dz=0;
+    for(const dent of body.indentations){
+     const px=x-dent.point.x,py=y-dent.point.y,pz=z-dent.point.z;
+     const weight=Math.exp(-(px*px+py*py+pz*pz)*invRadius2);
+     dx+=dent.normal.x*dent.depth*weight;
+     dy+=dent.normal.y*dent.depth*weight;
+     dz+=dent.normal.z*dent.depth*weight;
+    }
+    pos.setXYZ(i,x+dx,y+dy,z+dz);
+   }
+   pos.needsUpdate=true;
+   body.mesh.geometry.computeVertexNormals();
   }
   // Terrain is static; solve contact impulses iteratively alongside brick pairs.
   // Spatial bins restrict pair checks to local neighborhoods.
@@ -124,9 +141,6 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
   // Same per-entity radius predicate as Arcana BB instance packing.
   for(const body of bodies){
-   if(body.material==='flesh'){
-    // Deformation is advanced in fixed physics steps; rendering reads that state.
-   }
    const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);
   }
  }
