@@ -4,8 +4,8 @@ import {createStrandEye} from './eye.js';
 export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const root=new T.Group();root.name='Stone & Root masonry';parent.add(root);
  const palette=[0xb4b2a3,0xc9c3ad,0xaaa99f,0xd2c8b0,0x979f9e,0xb9b8ad,0xe0d0b2].map(color=>new T.MeshStandardMaterial({color,roughness:1,flatShading:true}));
- const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06}};
- const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true}))};
+ const materials={stone:{density:1,friction:.82,restitution:.09},wood:{density:.45,friction:.62,restitution:.12},ice:{density:.65,friction:.08,restitution:.06},flesh:{density:.9,friction:1.05,restitution:.035}};
+ const finishes={stone:palette,wood:[0x9b7047,0xb18a5b,0x806043].map(color=>new T.MeshStandardMaterial({color,roughness:.87,flatShading:true})),ice:[0xa8d9e8,0xd4edf5,0x82b9d4].map(color=>new T.MeshStandardMaterial({color,roughness:.22,metalness:.05,flatShading:true})),flesh:[0x9d5d64,0xb77579,0x824b57,0xc48c88].map(color=>new T.MeshStandardMaterial({color,roughness:.79,metalness:0}))};
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
  const stackOrigin={x:4.5,z:0};
  const SCALE=.5, w=.72*SCALE,h=.36*SCALE,d=.44*SCALE,b=.065*SCALE,bevel=.035*SCALE;
@@ -30,7 +30,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  function applyBlasts(){
   while(pendingBlasts.length){
    const event=pendingBlasts.shift(),point=new T.Vector3(event.point.x,event.point.y,event.point.z);
-   const direct=bodies.find(b=>b.id===event.hit?.bodyId),counts={stone:0,wood:0,ice:0};
+   const direct=bodies.find(b=>b.id===event.hit?.bodyId),counts={stone:0,wood:0,ice:0,flesh:0};
    let totalImpulse=0,woken=0,blastPeakDeltaV=0;
    for(const body of bodies){
     const delta=body.mesh.position.clone().sub(point),dist=delta.length();
@@ -53,19 +53,19 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  }
 
  function spawn(){
-  const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
+  const i=spawned++,kind=i<72?['stone','wood','ice'][i%3]:'flesh',mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*Math.pow(SCALE,3)*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
-   id:i,material:kind,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
+   id:i,material:kind,squash:0,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
   const start=performance.now();contacts.beginStep();lastStepSleepTransitions=0;applyBlasts();
   clock+=STEP;
-  if(spawned<72&&clock>=.19){clock-=.19;spawn();}
+  if(spawned<96&&clock>=.19){clock-=.19;spawn();}
   for(const body of bodies){
    if(body.carried)continue;
    if(!body.awake)continue;
@@ -114,7 +114,14 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   accumulator=Math.min(.1,accumulator+Math.max(0,Math.min(.05,dt||0)));
   let n=0;while(accumulator>=STEP&&n++<MAX_STEPS){step();accumulator-=STEP;}
   // Same per-entity radius predicate as Arcana BB instance packing.
-  for(const body of bodies){const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);}
+  for(const body of bodies){
+   if(body.material==='flesh'){
+    body.squash*=Math.exp(-Math.max(0,dt||0)*9);
+    const c=Math.min(.19,body.squash);
+    body.mesh.scale.set(1+c*.36,1-c,1+c*.36);
+   }
+   const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);
+  }
  }
  function claimStone(position,maxDistance=2){let best=null,bestD=maxDistance*maxDistance;for(const body of bodies){if(body.material!=='stone'||body.carried||body.claimed||body.awake)continue;const d=body.mesh.position.distanceToSquared(position);if(d<bestD){best=body;bestD=d;}}if(best)best.claimed=true;return best;}
  function carryStone(body,position){if(!body||!body.claimed)return false;body.carried=true;body.awake=false;body.v.set(0,0,0);body.spin.set(0,0,0);body.mesh.position.copy(position);body.mesh.quaternion.identity();return true;}
