@@ -16,7 +16,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
  // Same rounded brick profile for flesh, with more vertices for local dents.
- const fleshGeo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:3,curveSegments:8,steps:8});fleshGeo.translate(0,0,-d/2);
+ const fleshGeo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:4,steps:2});fleshGeo.translate(0,0,-d/2);
 
  const half=[w/2+bevel,h/2+bevel,d/2+bevel],bodies=[];
  const entityRadius=Math.hypot(...half);
@@ -61,7 +61,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*Math.pow(SCALE,3)*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
-   id:i,material:kind,indentations:[],restPositions:kind==='flesh'?new Float32Array(mesh.geometry.attributes.position.array):null,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
+   id:i,material:kind,indentations:[],deformationActive:false,restPositions:kind==='flesh'?new Float32Array(mesh.geometry.attributes.position.array):null,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
@@ -81,10 +81,13 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   // Localized, contact-driven surface strain. Every flesh brick owns its vertices.
   // Existing dents decay with a damped recovery; nearby vertices displace along the
   // incoming contact normal, so a corner strike cannot flatten the whole brick.
-  for(const body of bodies)if(body.material==='flesh'){
+  // Surface deformation runs at 30 Hz, independently of the 120 Hz contact solver.
+  // Dormant bricks incur no vertex writes or normal recomputation.
+  if(steps%4===0)for(const body of bodies)if(body.material==='flesh'){
+   if(body.indentations.length===0&&!body.deformationActive)continue;
    for(const dent of body.indentations){
-    dent.age+=STEP;
-    dent.depth=Math.max(0,dent.depth*Math.exp(-STEP*1.4));
+    dent.age+=STEP*4;
+    dent.depth=Math.max(0,dent.depth*Math.exp(-STEP*4*1.4));
    }
    body.indentations=body.indentations.filter(dent=>dent.depth>.00015&&dent.age<4);
    const pos=body.mesh.geometry.attributes.position,rest=body.restPositions;
@@ -103,6 +106,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
    }
    pos.needsUpdate=true;
    body.mesh.geometry.computeVertexNormals();
+   body.deformationActive=body.indentations.length>0;
   }
   // Terrain is static; solve contact impulses iteratively alongside brick pairs.
   // Spatial bins restrict pair checks to local neighborhoods.
