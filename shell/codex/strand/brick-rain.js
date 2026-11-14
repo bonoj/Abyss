@@ -53,13 +53,13 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  }
 
  function spawn(){
-  const i=spawned++,kind=i<72?['stone','wood','ice'][i%3]:'flesh',mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
+  const i=spawned++,kind=['stone','wood','ice','flesh'][i%4],mesh=new T.Mesh(geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*Math.pow(SCALE,3)*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
-   id:i,material:kind,squash:0,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
+   id:i,material:kind,squash:0,squashVelocity:0,mass,invI:12/(mass*(w*w+h*h+d*d)),awake:true,quiet:0});
  }
  const rotation=new T.Quaternion(),axis=new T.Vector3();
  function step(){
@@ -116,9 +116,15 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   // Same per-entity radius predicate as Arcana BB instance packing.
   for(const body of bodies){
    if(body.material==='flesh'){
-    body.squash*=Math.exp(-Math.max(0,dt||0)*9);
-    const c=Math.min(.19,body.squash);
-    body.mesh.scale.set(1+c*.36,1-c,1+c*.36);
+    // The deforming collider and rendered geometry share the same strain state.
+    // A damped second-order recovery allows visible yielding without permanent collapse.
+    const h=Math.max(0,Math.min(.05,dt||0));
+    const acceleration=-(42*(body.squash||0)+12*(body.squashVelocity||0));
+    body.squashVelocity=(body.squashVelocity||0)+acceleration*h;
+    body.squash=Math.max(0,Math.min(.24,(body.squash||0)+body.squashVelocity*h));
+    if(body.squash===0)body.squashVelocity=0;
+    const c=body.squash;
+    body.mesh.scale.set(1+c*.32,1-c,1+c*.32);
    }
    const p=body.mesh.position;body.mesh.visible=visibleEntity(p.x,p.y,p.z,entityRadius);
   }
