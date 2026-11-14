@@ -82,11 +82,11 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   for(const body of bodies)if(body.material==='flesh'){
    for(const dent of body.indentations){
     dent.age+=STEP;
-    dent.depth=Math.max(0,dent.depth*Math.exp(-STEP*5.5));
+    dent.depth=Math.max(0,dent.depth*Math.exp(-STEP*1.4));
    }
-   body.indentations=body.indentations.filter(dent=>dent.depth>.00015&&dent.age<1.5);
+   body.indentations=body.indentations.filter(dent=>dent.depth>.00015&&dent.age<4);
    const pos=body.mesh.geometry.attributes.position,rest=body.restPositions;
-   const radius=.105,invRadius2=1/(2*radius*radius);
+   const radius=.085,invRadius2=1/(2*radius*radius);
    for(let i=0;i<pos.count;i++){
     const x=rest[i*3],y=rest[i*3+1],z=rest[i*3+2];
     let dx=0,dy=0,dz=0;
