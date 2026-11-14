@@ -22,11 +22,6 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
  // Same rounded brick profile for flesh, with more vertices for local dents.
- // Opaque, low-contrast contour lines enter Three.js's transmission scene buffer.
- // Unlike transparent overlays, rear ice contours can then be sampled through
- // foreground ice. No extra render pass or altered physical geometry.
- const iceEdgeGeometry=new T.EdgesGeometry(geo,42);
- const iceEdgeMaterial=new T.LineBasicMaterial({color:0x668d9a,depthTest:true,depthWrite:false,toneMapped:true});
  const fleshGeo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:4,steps:2});fleshGeo.translate(0,0,-d/2);
 
  const half=[w/2+bevel,h/2+bevel,d/2+bevel],bodies=[];
@@ -69,12 +64,6 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   const i=spawned++,kind=['stone','wood','ice'][i%3],mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finishes[kind][i%finishes[kind].length]);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
-  if(kind==='ice'){
-   const contours=new T.LineSegments(iceEdgeGeometry,iceEdgeMaterial);
-   contours.name='Ice overlap contours';
-   contours.frustumCulled=false;
-   mesh.add(contours);
-  }
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   const mass=5*Math.pow(SCALE,3)*materials[kind].density;
   bodies.push({mesh,v:new T.Vector3(),spin:new T.Vector3((rnd(i+11)-.5),(.5-rnd(i+12)),(rnd(i+13)-.5)),
