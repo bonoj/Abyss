@@ -45,7 +45,7 @@ mineralColor*=.90+.18*coarse;
 diffuseColor.rgb*=mineralColor;
 `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-roughnessFactor=clamp(roughnessFactor-(.11*smoothstep(.65,.9,stoneCell(vStonePosition*43.0).x)),.74,.98);
+roughnessFactor=clamp(roughnessFactor-(.11*smoothstep(.65,.9,mineral.x)),.74,.98);
 `);
  };
  material.customProgramCacheKey=()=> 'strand-stone-01-v1';
