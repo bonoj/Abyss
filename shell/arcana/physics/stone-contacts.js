@@ -60,7 +60,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    if(a&&a.awake)pa.addScaledVector(n,-correction*ia);
    if(b&&b.awake)pb.addScaledVector(n,correction*ib);
   }
-  if(law.soft&&vn<-.12&&j>0){
+  if(law.soft&&vn<-.08&&j>0){
    // A contact is a world-space event. Convert it into the struck brick's
    // local frame, keeping the indentation attached as the brick rotates.
    for(const [body,sign] of [[a,-1],[b,1]])if(body?.material==='flesh'&&body.indentations){
@@ -69,10 +69,10 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
     const localNormal=n.clone().multiplyScalar(sign).applyQuaternion(inverse);
     // Clamp the approximate SAT support point to the actual brick envelope.
     localPoint.set(Math.max(-half[0],Math.min(half[0],localPoint.x)),Math.max(-half[1],Math.min(half[1],localPoint.y)),Math.max(-half[2],Math.min(half[2],localPoint.z)));
-    const depth=Math.min(.012,Math.max(0,-vn)*.0015);
+    const depth=Math.min(.024,Math.max(0,-vn)*.008);
     if(depth>0){
      const existing=body.indentations.find(d=>d.point.distanceToSquared(localPoint)<.003);
-     if(existing){existing.depth=Math.min(.035,existing.depth+depth);existing.age=0;}
+     if(existing){existing.depth=Math.min(.055,existing.depth+depth);existing.age=0;}
      else {body.indentations.push({point:localPoint,normal:localNormal,depth,age:0});if(body.indentations.length>8)body.indentations.shift();}
     }
    }
