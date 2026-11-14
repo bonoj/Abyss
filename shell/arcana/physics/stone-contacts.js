@@ -9,7 +9,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
  const frame={impulses:0,terrainImpulses:0,bodyImpulses:0,normalImpulse:0,frictionImpulse:0,maxEstimatedDepth:0,depthSum:0,slipSum:0,supportImpulses:0,wakeEvents:0,byInterface:{}};
  function beginStep(){wake.step=(wake.step||0)+1;for(const k of ['impulses','terrainImpulses','bodyImpulses','normalImpulse','frictionImpulse','maxEstimatedDepth','depthSum','slipSum','supportImpulses','wakeEvents'])frame[k]=0;frame.byInterface={};}
  const pairKey=(a,b)=>[a||'stone',b||'stone'].sort().join('/');
- function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;return {friction:Math.sqrt(ma.friction*mb.friction),restitution:Math.max(ma.restitution,mb.restitution)};}
+ function response(a,b){const ma=materials[a]||materials.stone,mb=materials[b]||materials.stone;const soft=a==='flesh'||b==='flesh';return {friction:Math.sqrt(ma.friction*mb.friction),restitution:soft?(a==='flesh'&&b==='flesh'?.025:.045):Math.max(ma.restitution,mb.restitution),soft};}
  function gradient(x,y,z){
   const nx=sample(x-eps,y,z)-sample(x+eps,y,z),ny=sample(x,y-eps,z)-sample(x,y+eps,z),nz=sample(x,y,z-eps)-sample(x,y,z+eps);
   const len=Math.hypot(nx,ny,nz);
@@ -40,7 +40,7 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   const denom=ia+ib+angular(a,ra,n)+angular(b,rb,n);
   const restitution=vn< -1.1?law.restitution:0;
   // Baumgarte bias handles resting penetration without velocity-wide damping.
-  const j=Math.max(0,(-(1+restitution)*vn+Math.min(.8,Math.max(0,depth-.006)*8))/Math.max(denom,1e-8));
+  const j=Math.max(0,(-(1+restitution)*vn+Math.min(.8,Math.max(0,depth-(law.soft?.012:.006))*(law.soft?3:8)))/Math.max(denom,1e-8));
   function apply(dir,magnitude){
    if(a&&a.awake){a.v.addScaledVector(dir,-magnitude*ia);a.spin.addScaledVector(scratch.copy(ra).cross(dir),-magnitude*a.invI);}
    if(b&&b.awake){b.v.addScaledVector(dir,magnitude*ib);b.spin.addScaledVector(scratch.copy(rb).cross(dir),magnitude*b.invI);}
@@ -54,11 +54,12 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
    const jt=Math.min(j*law.friction,speed/Math.max(td,1e-8));
    frame.frictionImpulse+=jt;apply(tangent,-jt);
   }
-  if(depth>.003){
-   const correction=Math.min(.08,(depth-.003)*.45)/(ia+ib);
+  if(depth>(law.soft?.008:.003)){
+   const correction=Math.min(law.soft?.035:.08,(depth-(law.soft?.008:.003))*(law.soft?.18:.45))/(ia+ib);
    if(a&&a.awake)pa.addScaledVector(n,-correction*ia);
    if(b&&b.awake)pb.addScaledVector(n,correction*ib);
   }
+  if(law.soft){for(const body of [a,b])if(body?.material==='flesh')body.squash=Math.min(.19,(body.squash||0)+Math.min(.045,j/Math.max(body.mass,.001)*.012));}
   stats.contacts++;
   frame.impulses++;frame.normalImpulse+=j;frame.maxEstimatedDepth=Math.max(frame.maxEstimatedDepth,depth);frame.depthSum+=depth;
   if(a&&b)frame.bodyImpulses++;else frame.terrainImpulses++;
