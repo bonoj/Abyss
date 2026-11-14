@@ -6,7 +6,7 @@ export function createStrandIce(T,{frost=.33,backlight=.66,bubbles=false}={}){
  const material=new T.MeshPhysicalMaterial({
   name:'StrandIce / 01',
   color:0xc3e9f2,metalness:0,roughness:.17,
-  transmission:.88,thickness:.16,ior:1.31,
+  transmission:.30+.70*backlight,thickness:.16,ior:1.31,
   attenuationColor:0x76c6d9,attenuationDistance:.65,
   specularIntensity:1,side:T.FrontSide,
   transparent:false,depthWrite:true
@@ -14,7 +14,6 @@ export function createStrandIce(T,{frost=.33,backlight=.66,bubbles=false}={}){
  material.userData={finish:'strand-ice-01',settings,originalPreserved:true};
  material.onBeforeCompile=shader=>{
   shader.uniforms.iceFrost={value:settings.frost};
-  shader.uniforms.iceBacklight={value:settings.backlight};
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
    '#include <common>\nvarying vec3 vIceObjectPosition;');
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
@@ -22,7 +21,6 @@ export function createStrandIce(T,{frost=.33,backlight=.66,bubbles=false}={}){
   const functions=`
 varying vec3 vIceObjectPosition;
 uniform float iceFrost;
-uniform float iceBacklight;
 float iceHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float iceNoise(vec3 p){
  vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -51,11 +49,8 @@ float icePixelFootprint=max(length(dFdx(vIceObjectPosition)),length(dFdy(vIceObj
 float iceNormalFade=1.0-smoothstep(.008,.032,icePixelFootprint);
 vec3 iceGradient=vec3(dFdx(iceGrain),dFdy(iceGrain),0.0);
 normal=normalize(normal-vec3(iceGradient.xy,0.0)*iceFrostAmount*.09*iceNormalFade);`);
-  // No emissive fake backlight: physical transmission uses the scene's
-  // illumination/background. The parameter controls transmission strength.
-  shader.fragmentShader=shader.fragmentShader.replace('#include <transmission_fragment>',
-   `material.transmission *= mix(.30,1.0,iceBacklight);
-#include <transmission_fragment>`);
+  // Transmission strength is configured on the physical material, not injected
+  // ahead of Three.js's transmission chunk (which would overwrite it).
   material.userData.shader=shader;
  };
  material.customProgramCacheKey=()=> 'strand-ice-01-v1';
