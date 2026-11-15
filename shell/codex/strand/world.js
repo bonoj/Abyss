@@ -12,7 +12,7 @@ import {createEquatorialTreatment} from '../../arcana/equatorial-treatment.js';
 // Strand shader experiment: keep visual treatments local to this world.
 export function createStrand(){
  const world=createHermeticon();world.group.name='Strand';world.content.name='Strand contents';world.group.add(world.content);
- const terrain=createTerrain({topology:'atlas'});world.content.add(terrain.group);world.observationTargets=()=>({terrain:terrain.group});
+ const terrain=createTerrain({topology:'atlas',smoothNormals:true});world.content.add(terrain.group);world.observationTargets=()=>({terrain:terrain.group});
  const edge=createEquatorialTreatment({terrain,parent:world.content});
  world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
