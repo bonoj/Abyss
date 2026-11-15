@@ -1,15 +1,15 @@
 // StrandWood / 01 — oak, continuous object-space growth rings and longitudinal grain.
 // The existing beveled brick mesh and rigid-body contacts are unchanged.
-export function createStrandWood(T){
+export function createStrandWood(T,{offset=[0,0,0]}={}){
  const material=new T.MeshStandardMaterial({
   name:'StrandWood / 01 · Oak',color:0xffffff,roughness:.86,metalness:0
  });
- material.userData={finish:'strand-wood-01',species:'oak',grainAxis:'x'};
- material.onBeforeCompile=shader=>{
+ material.userData={finish:'strand-wood-01',species:'oak',grainAxis:'x',offset};
+ material.onBeforeCompile=shader=>{\n  shader.uniforms.uWoodOffset={value:new T.Vector3(...offset)};
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
-   '#include <common>\nvarying vec3 vWoodPosition;');
+   '#include <common>\nvarying vec3 vWoodPosition;\nuniform vec3 uWoodOffset;');
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
-   '#include <begin_vertex>\nvWoodPosition=position;');
+   '#include <begin_vertex>\nvWoodPosition=position+uWoodOffset;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 varying vec3 vWoodPosition;
 float woodHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
