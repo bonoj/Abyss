@@ -1,10 +1,10 @@
 // StrandStone / 03 — fine-grained basalt with sparse non-periodic weathering.
-export function createStrandStone(T){
+export function createStrandStone(T,{offset=[0,0,0]}={}){
  const material=new T.MeshStandardMaterial({name:'StrandStone / 03 · Basalt',color:0xffffff,roughness:.94,metalness:0});
- material.userData={finish:'strand-stone-03',rock:'weathered-basalt'};
- material.onBeforeCompile=shader=>{
-  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;');
-  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvStonePosition=position;');
+ material.userData={finish:'strand-stone-03',rock:'weathered-basalt',offset};
+ material.onBeforeCompile=shader=>{\n  shader.uniforms.uStoneOffset={value:new T.Vector3(...offset)};
+  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;\nuniform vec3 uStoneOffset;');
+  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvStonePosition=position+uStoneOffset;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 varying vec3 vStonePosition;
 float basaltHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
