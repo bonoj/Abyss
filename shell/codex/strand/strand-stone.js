@@ -1,7 +1,7 @@
-// StrandStone / 02 — multiscale crystalline granite, without regular cellular tiling.
+// StrandStone / 02b — band-limited granite with stable geometric normals.
 export function createStrandStone(T){
- const material=new T.MeshStandardMaterial({name:'StrandStone / 02 · Granite',color:0xffffff,roughness:.94,metalness:0});
- material.userData={finish:'strand-stone-02',rock:'weathered-granite'};
+ const material=new T.MeshStandardMaterial({name:'StrandStone / 02b · Granite',color:0xffffff,roughness:.94,metalness:0});
+ material.userData={finish:'strand-stone-02b',rock:'weathered-granite'};
  material.onBeforeCompile=shader=>{
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;');
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvStonePosition=position;');
@@ -30,11 +30,14 @@ float stoneMica(vec3 p){
 `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
 vec3 stoneP=vStonePosition;
+float pixelFootprint=max(length(dFdx(stoneP)),length(dFdy(stoneP)));
 float feldspar=stoneFeldspar(stoneP);
-float feldsparDomain=smoothstep(.47,.63,feldspar);
+float feldsparFade=1.0-smoothstep(.025,.095,pixelFootprint);
+float feldsparDomain=mix(.42,smoothstep(.44,.66,feldspar),feldsparFade);
 float quartz=stoneNoise(stoneP*34.0+vec3(8.0,19.0,3.0));
-float mica=stoneMica(stoneP);
-vec3 quartzMatrix=mix(vec3(.49,.51,.51),vec3(.69,.70,.68),smoothstep(.25,.80,quartz));
+float mica=stoneMica(stoneP)*(1.0-smoothstep(.008,.03,pixelFootprint));
+float quartzFade=1.0-smoothstep(.009,.035,pixelFootprint);
+vec3 quartzMatrix=mix(vec3(.49,.51,.51),vec3(.69,.70,.68),mix(.5,smoothstep(.25,.80,quartz),quartzFade));
 vec3 feldsparCrystal=mix(vec3(.58,.54,.49),vec3(.77,.72,.65),smoothstep(.42,.75,feldspar));
 vec3 mineralColor=mix(quartzMatrix,feldsparCrystal,feldsparDomain);
 mineralColor=mix(mineralColor,vec3(.16,.18,.19),mica*.84);
@@ -42,22 +45,10 @@ float coarse=stoneNoise(stoneP*8.0+4.0);
 mineralColor*=.91+.16*coarse;
 diffuseColor.rgb*=mineralColor;
 `);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
-// Very restrained mineral microrelief; derivative-based and screen-space stable.
-float stoneBump=stoneNoise(vStonePosition*62.0+5.0);
-vec3 stoneDx=dFdx(vStonePosition),stoneDy=dFdy(vStonePosition);
-float bumpDx=dFdx(stoneBump),bumpDy=dFdy(stoneBump);
-float footprint=max(length(stoneDx),length(stoneDy))*62.0;
-float bumpFade=1.0-smoothstep(.55,1.8,footprint);
-vec3 bumpedNormal=normalize(cross(stoneDy,stoneDx));
-vec3 bumpGradient=cross(stoneDy,normal)*bumpDx+cross(normal,stoneDx)*bumpDy;
-float bumpDenom=max(dot(cross(stoneDy,stoneDx),normal),.00001);
-normal=normalize(normal-bumpGradient*(.018*bumpFade/bumpDenom));
-`);
   shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
 roughnessFactor=clamp(roughnessFactor-.075*feldsparDomain+.035*mica,.77,.99);
 `);
  };
- material.customProgramCacheKey=()=> 'strand-stone-02-v1';
+ material.customProgramCacheKey=()=> 'strand-stone-02b-v2';
  return material;
 }
