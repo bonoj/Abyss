@@ -5,7 +5,8 @@ export function createStrandWood(T,{offset=[0,0,0]}={}){
   name:'StrandWood / 01 · Oak',color:0xffffff,roughness:.86,metalness:0
  });
  material.userData={finish:'strand-wood-01',species:'oak',grainAxis:'x',offset};
- material.onBeforeCompile=shader=>{\n  shader.uniforms.uWoodOffset={value:new T.Vector3(...offset)};
+ material.onBeforeCompile=shader=>{
+  shader.uniforms.uWoodOffset={value:new T.Vector3(...offset)};
   shader.vertexShader=shader.vertexShader.replace('#include <common>',
    '#include <common>\nvarying vec3 vWoodPosition;\nuniform vec3 uWoodOffset;');
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
