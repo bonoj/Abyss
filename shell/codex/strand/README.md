@@ -26,7 +26,7 @@ Every new Chronicle entry MUST:
 
 ## Current handoff
 
-**Wood grain:** original StrandWood / 01 shader restored after the proposed continuous-wave replacement caused the wood to disappear on the human's device. Rollback commit `8465dca4`. The pre-existing visible grain-panel discontinuity remains unresolved. The model identified `filter` as a GLSL reserved identifier in the failed shader; the precise device compiler error was not captured. No new shader change should be handed off without compilation and actual render verification.
+**Wood grain candidate fix (unverified on device):** `strand-wood.js` retains the original working shader and replaces only the high-multiplier lattice-hash `woodNoise` with bounded continuous trigonometric variation (commit `9024efc3`). The human's prior screenshot showed an abrupt panel-like grain discontinuity. A local Chromium WebGL test was attempted but its GPU process failed; there is no successful shader compile or browser render witness. Inspect the same face on mobile. Rollback to the original `strand-wood.js` at `fb2830499e1b204b7ed9546b46d19d5efe6ab69a` if it fails.
 
 **Terrain:** original `createTerrain({topology:'atlas'})` marching-tetrahedra extraction and flat shading restored. Both experimental smooth normals and constrained vertex relaxation were reverted after the human observed visual artifacts or no improvement. No experimental terrain smoothing remains active.
 
