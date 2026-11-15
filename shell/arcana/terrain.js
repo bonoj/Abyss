@@ -1,6 +1,6 @@
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 // Signed field, tetrahedral chunk extraction and aperture shader migrated from Wanderer Separated.
-export function createTerrain({topology='reference',testBorehole=null}={}){
+export function createTerrain({topology='reference',testBorehole=null,smoothNormals=false}={}){
  const NX=85,NY=21,NZ=85,MINY=-3.6,MAXY=3.6,WORLD_HALF=25.2,CHUNK=10,CX=Math.ceil((NX-1)/CHUNK),CZ=Math.ceil((NZ-1)/CHUNK);
  const depositedMaterial=new Map();
  const MATERIALS=[
@@ -44,7 +44,7 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
  const APERTURE_RADIUS=9.72,sharedApertureOffset=new T.Vector3();let activeAperture=APERTURE_RADIUS,apertureUniform=null;
 
  const apertureEyes={compileCount:0,vertexHook:false,fragmentHook:false,compileFailures:[],lastCompiledAt:null};
- const terrainMaterial=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.92,metalness:.02,side:T.DoubleSide,flatShading:true,onBeforeCompile:shader=>{shader.uniforms.apertureRadius={value:activeAperture};apertureUniform=shader.uniforms.apertureRadius;shader.uniforms.apertureOffset={value:sharedApertureOffset};apertureEyes.compileCount++;apertureEyes.lastCompiledAt=performance.now();apertureEyes.vertexHook=shader.vertexShader.includes('#include <begin_vertex>');apertureEyes.fragmentHook=shader.fragmentShader.includes('#include <clipping_planes_fragment>');if(!apertureEyes.vertexHook||!apertureEyes.fragmentHook)apertureEyes.compileFailures.push('Missing shader injection anchor');shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vAperturePosition;\nuniform vec3 apertureOffset;');shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvAperturePosition=position-apertureOffset;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vAperturePosition;\nuniform float apertureRadius;\nuniform vec3 apertureOffset;');shader.fragmentShader=shader.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(dot(vAperturePosition,vAperturePosition)>apertureRadius*apertureRadius) discard;');shader.fragmentShader=shader.fragmentShader.replace('#include <dithering_fragment>','#include <dithering_fragment>\nfloat apertureFog=smoothstep(7.1,9.70,length(vAperturePosition));\ngl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(0.045,0.115,0.16),apertureFog);')}});
+ const terrainMaterial=new T.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.92,metalness:.02,side:T.DoubleSide,flatShading:!smoothNormals,onBeforeCompile:shader=>{shader.uniforms.apertureRadius={value:activeAperture};apertureUniform=shader.uniforms.apertureRadius;shader.uniforms.apertureOffset={value:sharedApertureOffset};apertureEyes.compileCount++;apertureEyes.lastCompiledAt=performance.now();apertureEyes.vertexHook=shader.vertexShader.includes('#include <begin_vertex>');apertureEyes.fragmentHook=shader.fragmentShader.includes('#include <clipping_planes_fragment>');if(!apertureEyes.vertexHook||!apertureEyes.fragmentHook)apertureEyes.compileFailures.push('Missing shader injection anchor');shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vAperturePosition;\nuniform vec3 apertureOffset;');shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvAperturePosition=position-apertureOffset;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vAperturePosition;\nuniform float apertureRadius;\nuniform vec3 apertureOffset;');shader.fragmentShader=shader.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(dot(vAperturePosition,vAperturePosition)>apertureRadius*apertureRadius) discard;');shader.fragmentShader=shader.fragmentShader.replace('#include <dithering_fragment>','#include <dithering_fragment>\nfloat apertureFog=smoothstep(7.1,9.70,length(vAperturePosition));\ngl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(0.045,0.115,0.16),apertureFog);')}});
  const solid=new T.Group();solid.name='terrain:signed-volume';
  const terrainChunks=[];
  const collisionStats={queries:0,triangleTests:0,chunkRejects:0};
@@ -94,7 +94,29 @@ export function createTerrain({topology='reference',testBorehole=null}={}){
     else{const [a,b]=inside,[c,d]=outside,q0=lerp(p[a],p[c],v[a],v[c]),q1=lerp(p[a],p[d],v[a],v[d]),q2=lerp(p[b],p[c],v[b],v[c]),q3=lerp(p[b],p[d],v[b],v[d]);tri(q0,q1,q2);tri(q2,q1,q3)}
    }
   }
-  c.geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));c.geometry.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(pos.length).fill(.52),3));c.geometry.computeVertexNormals();c.geometry.computeBoundingSphere();c.geometry.computeBoundingBox();c.triangles=pos.length/9;
+  c.geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));c.geometry.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(pos.length).fill(.52),3));c.geometry.computeVertexNormals();
+  if(smoothNormals){
+   // The extraction emits independent triangle vertices. Derive continuous
+   // outward normals from the signed occupancy field instead of face normals.
+   // Recompute on every chunk extraction, including meteor excavation.
+   const normals=new Float32Array(pos.length),e=.12;
+   const clamped=(x,y,z)=>fieldSample(
+    Math.max(-WORLD_HALF+.001,Math.min(WORLD_HALF-.001,x)),
+    Math.max(MINY+.001,Math.min(MAXY-.001,y)),
+    Math.max(-WORLD_HALF+.001,Math.min(WORLD_HALF-.001,z)));
+   for(let i=0;i<pos.length;i+=3){
+    const x=pos[i],y=pos[i+1],z=pos[i+2];
+    let nx=clamped(x-e,y,z)-clamped(x+e,y,z);
+    let ny=clamped(x,y-e,z)-clamped(x,y+e,z);
+    let nz=clamped(x,y,z-e)-clamped(x,y,z+e);
+    const len=Math.hypot(nx,ny,nz);
+    if(len>1e-7){nx/=len;ny/=len;nz/=len}
+    else {nx=0;ny=1;nz=0}
+    normals[i]=nx;normals[i+1]=ny;normals[i+2]=nz;
+   }
+   c.geometry.setAttribute('normal',new T.BufferAttribute(normals,3));
+  }
+  c.geometry.computeBoundingSphere();c.geometry.computeBoundingBox();c.triangles=pos.length/9;
   // Precompute triangle AABBs and vertices once per terrain rebuild, not per collision query.
   const boxes=new Float32Array(pos.length*2),positions=new Float32Array(pos);
   for(let i=0;i<pos.length;i+=9){for(let axis=0;axis<3;axis++){
