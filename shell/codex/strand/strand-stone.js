@@ -1,7 +1,7 @@
-// StrandStone / 04 — fine-grained basalt with sparse non-periodic weathering.
+// StrandStone / 03 — fine-grained basalt with sparse non-periodic weathering.
 export function createStrandStone(T,{offset=[0,0,0]}={}){
- const material=new T.MeshStandardMaterial({name:'StrandStone / 04 · Basalt',color:0xffffff,roughness:.94,metalness:0});
- material.userData={finish:'strand-stone-04',rock:'weathered-basalt',offset};
+ const material=new T.MeshStandardMaterial({name:'StrandStone / 03 · Basalt',color:0xffffff,roughness:.94,metalness:0});
+ material.userData={finish:'strand-stone-03',rock:'weathered-basalt',offset};
  material.onBeforeCompile=shader=>{
   shader.uniforms.uStoneOffset={value:new T.Vector3(...offset)};
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;\nuniform vec3 uStoneOffset;');
@@ -49,35 +49,22 @@ float weather=basaltNoise(p*9.0+5.0);
 float broad=basaltNoise(p*3.5+27.0);
 float fine=basaltNoise(p*57.0+12.0);
 float fineFade=1.0-smoothstep(.008,.028,footprint);
-float pitFade=1.0-smoothstep(.009,.035,footprint);
-float crackFade=1.0-smoothstep(.004,.020,footprint);
-float pits=basaltPit(p*22.0)*pitFade;
+float pitFade=1.0-smoothstep(.006,.022,footprint);
+float crackFade=1.0-smoothstep(.003,.016,footprint);
+float pits=basaltPit(p*30.0)*pitFade;
 float fractures=basaltFracture(p)*crackFade;
-float weatherMask=smoothstep(.48,.72,weather*.72+broad*.28);
-vec3 base=mix(vec3(.20,.225,.235),vec3(.34,.36,.36),broad);
-base*=.90+.20*mix(.5,fine,fineFade);
+float weatherMask=smoothstep(.56,.77,weather*.72+broad*.28);
+vec3 base=mix(vec3(.18,.205,.215),vec3(.245,.26,.265),broad);
+base*=.965+.07*mix(.5,fine,fineFade);
 vec3 oxidized=vec3(.31,.245,.205);
-base=mix(base,oxidized,weatherMask*.42);
-base*=1.0-.24*pits-.34*fractures;
-// Relief agrees with cavity and fracture shading; weather stains remain flat.
-float basaltHeight=-.0085*pits-.004*fractures+.0007*(fine-.5)*fineFade;
-float basaltReliefFade=1.0-smoothstep(.009,.035,footprint);
+base=mix(base,oxidized,weatherMask*.24);
+base*=1.0-.36*pits-.47*fractures;
 diffuseColor.rgb*=base;
-`);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
-// Screen-space derivatives of the SAME continuous height field. Project
-// into the geometric tangent plane; avoid derivative noise on subpixel detail.
-vec3 stoneDx=dFdx(vStonePosition), stoneDy=dFdy(vStonePosition);
-float stoneDet=dot(stoneDx,cross(stoneDy,normal));
-if(abs(stoneDet)>1e-9){
- vec3 stoneGradient=(cross(stoneDy,normal)*dFdx(basaltHeight)+cross(normal,stoneDx)*dFdy(basaltHeight))/stoneDet;
- normal=normalize(normal-stoneGradient*basaltReliefFade);
-}
 `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
 roughnessFactor=clamp(roughnessFactor+.035*weatherMask-.065*pits,.86,.99);
 `);
  };
- material.customProgramCacheKey=()=> 'strand-stone-04-v1';
+ material.customProgramCacheKey=()=> 'strand-stone-03-v1';
  return material;
 }
