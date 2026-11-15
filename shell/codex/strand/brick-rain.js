@@ -75,7 +75,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   const offset=kind==='wood'
    ? [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*.022,(rnd(i*13+103)-.5)*.022]
    : [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*41.3,(rnd(i*13+103)-.5)*43.9];
-  const finish=kind==='stone'?createStrandStone(T,{offset}):kind==='wood'?createStrandWood(T,{offset}):finishes[kind][i%finishes[kind].length];
+  const finish=kind==='stone'?createStrandStone(T,{variant:Math.floor(i/3)%4}):kind==='wood'?createStrandWood(T,{offset}):finishes[kind][i%finishes[kind].length];
   const mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finish);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
