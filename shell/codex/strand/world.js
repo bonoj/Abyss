@@ -83,7 +83,7 @@ export function createStrand(){
    material:specimen.material.name,source:'same mesh geometry and active material, isolated diagnostic lighting',
    resolution:[size,size],grid16:grid,meanBrightness:+mean.toFixed(2),
    brightnessStdDev:+Math.sqrt(variance).toFixed(2),
-   shader:{version:'strand-stone-03',rock:'weathered basalt',features:'sparse 3D pits, warped fracture sheets, broad oxidation',relief:'geometric normals only'},
+   shader:{version:'strand-stone-04',rock:'weathered basalt',features:'stronger grain, sparse cavities, warped fractures, broad oxidation',relief:'screen-filtered procedural height-derived normals'},
    limitations:['Specimen lighting differs from live scene','Grid is a lossy brightness digest, not a screenshot','Image is shown in Eye details; copy/share the image to enable visual inspection'],
    preview:canvas.toDataURL('image/png')};
  };
