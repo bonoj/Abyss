@@ -129,9 +129,19 @@ export function createStoneContacts(T,terrain,half,materials={stone:{friction:.8
   for(const v of B)if(!test(v.clone()))return false;
   for(const x of A)for(const y of B)if(!test(new T.Vector3().crossVectors(x,y)))return false;
   if(!axis)return false;
-  // Support point halfway between projected opposing faces, rather than center-to-center.
-  const pa=a.mesh.position.clone().addScaledVector(axis,ha[1]);
-  const pb=b.mesh.position.clone().addScaledVector(axis,-hb[1]);
+  // Support points of each oriented box along the actual SAT contact normal.
+  // A face-normal contact stays centered on that face instead of applying
+  // the Y half-extent along arbitrary side or diagonal collision axes.
+  function support(body,basis,extents,direction){
+   const point=body.mesh.position.clone();
+   for(let i=0;i<3;i++){
+    const projection=basis[i].dot(direction);
+    if(Math.abs(projection)>1e-8)point.addScaledVector(basis[i],Math.sign(projection)*extents[i]);
+   }
+   return point;
+  }
+  const pa=support(a,A,ha,axis);
+  const pb=support(b,B,hb,axis.clone().negate());
   const contact=pa.add(pb).multiplyScalar(.5);
   impulse(a,b,axis,contact,Math.min(depth,.15),response(a.material,b.material));
   stats.pairs++;return true;
