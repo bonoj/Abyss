@@ -1,4 +1,4 @@
-// StrandStone / 05 — baked, tileable PBR basalt. No per-fragment procedural loops.
+// StrandStone / 06 — baked, tileable PBR basalt. No per-fragment procedural loops.
 // Four shared 128px material variants; standard Three.js texture sampling and mipmaps.
 const SIZE=128, VARIANTS=4;
 const fract=x=>x-Math.floor(x);
@@ -31,8 +31,8 @@ function build(T,seed){
   albedo[o+1]=clamp(79+57*t+7*warm);
   albedo[o+2]=clamp(82+55*t-9*warm);
   albedo[o+3]=255;
-  const dx=(height[index(x+1,y)]-height[index(x-1,y)])*2.0;
-  const dy=(height[index(x,y+1)]-height[index(x,y-1)])*2.0;
+  const dx=(height[index(x+1,y)]-height[index(x-1,y)])*4.0;
+  const dy=(height[index(x,y+1)]-height[index(x,y-1)])*4.0;
   const nx=-dx,ny=-dy,inv=1/Math.hypot(nx,ny,1);
   normals[o]=clamp(127.5+127.5*nx*inv);
   normals[o+1]=clamp(127.5+127.5*ny*inv);
@@ -51,7 +51,7 @@ function build(T,seed){
  return new T.MeshStandardMaterial({
   name:'StrandStone / 05 · Baked basalt',color:0xffffff,metalness:0,
   roughness:1,map:tex(albedo,true),normalMap:tex(normals),
-  normalScale:new T.Vector2(.65,.65),roughnessMap:tex(rmap)
+  normalScale:new T.Vector2(1,1),roughnessMap:tex(rmap)
  });
 }
 export function createStrandStone(T,{variant=0}={}){
