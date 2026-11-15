@@ -26,6 +26,8 @@ Every new Chronicle entry MUST:
 
 ## Current handoff
 
+**Wood grain seam experiment:** `strand-wood.js` now uses continuous object-space sine-wave flow/rings/fibers with derivative-based ring filtering rather than lattice hash noise and `fract` ring bands. Commit `730b5b49`. This is a source-verified candidate fix for the human-observed vertical grain-panel discontinuity, not yet browser-verified. Inspect the same wood face and other brick seeds/rotations; revert that commit if the seam persists or the appearance regresses.
+
 **Terrain:** original `createTerrain({topology:'atlas'})` marching-tetrahedra extraction and flat shading restored. Both experimental smooth normals and constrained vertex relaxation were reverted after the human observed visual artifacts or no improvement. No experimental terrain smoothing remains active.
 
 
