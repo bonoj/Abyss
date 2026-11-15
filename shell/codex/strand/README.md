@@ -26,7 +26,7 @@ Every new Chronicle entry MUST:
 
 ## Current handoff
 
-**Wood grain (mobile verification pending):** `strand-wood.js` retains continuous volumetric ring warping from `9024efc3` and now replaces the high-frequency cross-wave fiber field with longitudinal striations that fade on X-facing end caps (commit `590355c7`). The human observed the previous seam improved but a checkerboard/wave pattern on end caps. Source readback is available; actual mobile compilation/rendering and the new appearance are not yet verified. Revert this latest wood commit if wood disappears or looks worse.
+**Wood grain (mobile verification pending):** The human observed improved end-grain checkerboard after `590355c7` but remaining vertical bands. `strand-wood.js` now removes directional `woodNoise` from ring warping, using only radius and growth-axis position for a small continuous warp (commit `155c6fc8`); longitudinal fibers remain unchanged. Source readback passed; device shader compilation and visual appearance remain unverified. Inspect end caps for vertical bands and long faces for seam regression; revert `155c6fc8` if worse.
 
 **Terrain:** original `createTerrain({topology:'atlas'})` marching-tetrahedra extraction and flat shading restored. Both experimental smooth normals and constrained vertex relaxation were reverted after the human observed visual artifacts or no improvement. No experimental terrain smoothing remains active.
 
