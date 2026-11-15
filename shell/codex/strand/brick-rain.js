@@ -29,6 +29,18 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  s.quadraticCurveTo(-w/2,h/2,-w/2,h/2-b);s.lineTo(-w/2,-h/2+b);
  s.quadraticCurveTo(-w/2,-h/2,-w/2+b,-h/2);
  const geo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,curveSegments:2,steps:1});geo.translate(0,0,-d/2);
+ // Stone-only planar UVs: the default ExtrudeGeometry UVs are in tiny
+ // object units (~0.2), so the baked texture previously showed only a
+ // fraction of a tile. Project each face by its dominant geometric normal.
+ const stoneGeo=geo.clone(), pos=stoneGeo.getAttribute('position'),norm=stoneGeo.getAttribute('normal'),uv=stoneGeo.getAttribute('uv');
+ for(let k=0;k<pos.count;k++){
+  const x=pos.getX(k),y=pos.getY(k),z=pos.getZ(k);
+  const nx=Math.abs(norm.getX(k)),ny=Math.abs(norm.getY(k)),nz=Math.abs(norm.getZ(k));
+  if(nx>=ny&&nx>=nz)uv.setXY(k,(z/d+.5),(y/h+.5));
+  else if(ny>=nz)uv.setXY(k,(x/w+.5),(z/d+.5));
+  else uv.setXY(k,(x/w+.5),(y/h+.5));
+ }
+ uv.needsUpdate=true;
  // Same rounded brick profile for flesh, with more vertices for local dents.
  const fleshGeo=new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:4,steps:2});fleshGeo.translate(0,0,-d/2);
 
@@ -76,7 +88,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
    ? [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*.022,(rnd(i*13+103)-.5)*.022]
    : [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*41.3,(rnd(i*13+103)-.5)*43.9];
   const finish=kind==='stone'?createStrandStone(T,{variant:Math.floor(i/3)%4}):kind==='wood'?createStrandWood(T,{offset}):finishes[kind][i%finishes[kind].length];
-  const mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finish);
+  const mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():kind==='stone'?stoneGeo:geo,finish);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
   mesh.rotation.set((rnd(i+80)-.5)*.6,rnd(i+90)*6.28,(rnd(i+100)-.5)*.6);
   mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
