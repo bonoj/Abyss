@@ -72,7 +72,9 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
   const i=spawned++,kind=['stone','wood','ice'][i%3];
   // Deterministic per-brick volumetric offsets; do not translate geometry or alter contacts.
   // Large, non-integral displacements avoid shared grain centers and fracture planes.
-  const offset=[(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*41.3,(rnd(i*13+103)-.5)*43.9];
+  const offset=kind==='wood'
+   ? [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*.022,(rnd(i*13+103)-.5)*.022]
+   : [(rnd(i*13+101)-.5)*37.7,(rnd(i*13+102)-.5)*41.3,(rnd(i*13+103)-.5)*43.9];
   const finish=kind==='stone'?createStrandStone(T,{offset}):kind==='wood'?createStrandWood(T,{offset}):finishes[kind][i%finishes[kind].length];
   const mesh=new T.Mesh(kind==='flesh'?fleshGeo.clone():geo,finish);
   mesh.position.set(stackOrigin.x+(rnd(i*3)-.5)*2.2,6.4+rnd(i*3+1)*1.2,stackOrigin.z+(rnd(i*3+2)-.5)*2.2);
