@@ -35,9 +35,13 @@ float woodRing(vec3 p){
   shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
 vec3 woodP=vWoodPosition;
 float ring=woodRing(woodP);
-float longitudinal=woodNoise(vec3(woodP.x*.7,woodP.y*70.0,woodP.z*70.0));
-float grainFade=1.0-smoothstep(.4,1.5,fwidth(woodP.y*70.0)+fwidth(woodP.z*70.0));
-float fiber=(longitudinal-.5)*grainFade;
+// Fibers follow the growth axis, rather than crossing sine-wave fields.
+// Fade fine longitudinal striations on X-facing end grain.
+float fiberPhase=woodP.y*76.0+1.2*sin(woodP.z*9.0+woodP.x*.7);
+float fiberFade=1.0-smoothstep(.5,2.5,fwidth(fiberPhase));
+float capFacing=abs(dFdx(woodP.y)*dFdy(woodP.z)-dFdx(woodP.z)*dFdy(woodP.y));
+float sideFacing=1.0-smoothstep(.2,.8,capFacing/(length(cross(dFdx(woodP),dFdy(woodP)))+1e-5));
+float fiber=.20*sin(fiberPhase)*fiberFade*sideFacing;
 float timberTone=clamp(.58-.22*ring+.20*fiber,0.0,1.0);
 vec3 oakDark=vec3(.22,.105,.041);
 vec3 oakLight=vec3(.67,.40,.19);
@@ -47,6 +51,6 @@ diffuseColor.rgb*=mix(oakDark,oakLight,timberTone);
 roughnessFactor=clamp(roughnessFactor+(.5-woodRing(vWoodPosition))*.08,.65,.98);
 `);
  };
- material.customProgramCacheKey=()=> 'strand-wood-01-v3';
+ material.customProgramCacheKey=()=> 'strand-wood-01-v4';
  return material;
 }
