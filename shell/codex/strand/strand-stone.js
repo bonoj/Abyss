@@ -1,70 +1,63 @@
-// StrandStone / 03 — fine-grained basalt with sparse non-periodic weathering.
-export function createStrandStone(T,{offset=[0,0,0]}={}){
- const material=new T.MeshStandardMaterial({name:'StrandStone / 03 · Basalt',color:0xffffff,roughness:.94,metalness:0});
- material.userData={finish:'strand-stone-03',rock:'weathered-basalt',offset};
- material.onBeforeCompile=shader=>{
-  shader.uniforms.uStoneOffset={value:new T.Vector3(...offset)};
-  shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;\nuniform vec3 uStoneOffset;');
-  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvStonePosition=position+uStoneOffset;');
-  shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
-varying vec3 vStonePosition;
-float basaltHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
-float basaltNoise(vec3 p){
- vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
- float a=basaltHash(i),b=basaltHash(i+vec3(1,0,0)),c=basaltHash(i+vec3(0,1,0)),d=basaltHash(i+vec3(1,1,0));
- float e=basaltHash(i+vec3(0,0,1)),g=basaltHash(i+vec3(1,0,1)),h=basaltHash(i+vec3(0,1,1)),j=basaltHash(i+vec3(1,1,1));
- return mix(mix(mix(a,b,f.x),mix(c,d,f.x),f.y),mix(mix(e,g,f.x),mix(h,j,f.x),f.y),f.z);
+// StrandStone / 05 — baked, tileable PBR basalt. No per-fragment procedural loops.
+// Four shared 128px material variants; standard Three.js texture sampling and mipmaps.
+const SIZE=128, VARIANTS=4;
+const fract=x=>x-Math.floor(x);
+const hash=(x,y,seed)=>fract(Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453);
+function noise(x,y,frequency,seed){
+ const a=x*frequency,b=y*frequency,ix=Math.floor(a),iy=Math.floor(b);
+ let fx=fract(a),fy=fract(b);fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+ const h=(dx,dy)=>hash((ix+dx+frequency)%frequency,(iy+dy+frequency)%frequency,seed);
+ return (h(0,0)*(1-fx)+h(1,0)*fx)*(1-fy)+(h(0,1)*(1-fx)+h(1,1)*fx)*fy;
 }
-// Localized sparse pits: distance to scattered, jittered sites, not a tiled
-// Voronoi coloring. Cells are only a search structure; most contain no pit.
-float basaltPit(vec3 p){
- vec3 base=floor(p),f=fract(p);
- float nearest=10.0;
- for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++){
-  vec3 cell=base+vec3(float(x),float(y),float(z));
-  float enabled=step(.87,basaltHash(cell+19.0));
-  vec3 center=vec3(basaltHash(cell+3.0),basaltHash(cell+7.0),basaltHash(cell+11.0));
-  float radius=mix(.10,.22,basaltHash(cell+23.0));
-  float dist=length(f-vec3(float(x),float(y),float(z))-center)/radius;
-  nearest=min(nearest,mix(10.0,dist,enabled));
+function build(T,seed){
+ const count=SIZE*SIZE,height=new Float32Array(count),tone=new Float32Array(count),rough=new Float32Array(count);
+ const index=(x,y)=>((y+SIZE)%SIZE)*SIZE+(x+SIZE)%SIZE;
+ for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+  const u=x/SIZE,v=y/SIZE,k=index(x,y);
+  // Layered erosion and mineral granularity. No Voronoi pits, circles or square masks.
+  const broad=noise(u,v,4,seed),medium=noise(u,v,12,seed+11);
+  const fine=noise(u,v,32,seed+23),micro=noise(u,v,64,seed+37);
+  const ridge=Math.abs(medium-.5);
+  height[k]=.50*broad+.32*medium+.13*fine+.05*micro-.07*ridge;
+  tone[k]=.58*broad+.26*medium+.16*fine;
+  rough[k]=.68+.18*medium+.10*micro;
  }
- return 1.0-smoothstep(.55,1.1,nearest);
+ const albedo=new Uint8Array(count*4),normals=new Uint8Array(count*4),rmap=new Uint8Array(count*4);
+ const clamp=v=>Math.max(0,Math.min(255,Math.round(v)));
+ for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
+  const k=index(x,y),o=k*4;
+  const t=tone[k],warm=Math.max(0,t-.54);
+  albedo[o]=clamp(76+58*t+21*warm);
+  albedo[o+1]=clamp(79+57*t+7*warm);
+  albedo[o+2]=clamp(82+55*t-9*warm);
+  albedo[o+3]=255;
+  const dx=(height[index(x+1,y)]-height[index(x-1,y)])*2.0;
+  const dy=(height[index(x,y+1)]-height[index(x,y-1)])*2.0;
+  const nx=-dx,ny=-dy,inv=1/Math.hypot(nx,ny,1);
+  normals[o]=clamp(127.5+127.5*nx*inv);
+  normals[o+1]=clamp(127.5+127.5*ny*inv);
+  normals[o+2]=clamp(127.5+127.5*inv);
+  normals[o+3]=255;
+  rmap[o]=255;rmap[o+1]=clamp(rough[k]*255);rmap[o+2]=255;rmap[o+3]=255;
+ }
+ function tex(data,srgb=false){
+  const t=new T.DataTexture(data,SIZE,SIZE,T.RGBAFormat,T.UnsignedByteType);
+  t.wrapS=t.wrapT=T.RepeatWrapping;
+  t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;
+  t.generateMipmaps=true;
+  if(srgb)t.colorSpace=T.SRGBColorSpace;
+  t.needsUpdate=true;return t;
+ }
+ return new T.MeshStandardMaterial({
+  name:'StrandStone / 05 · Baked basalt',color:0xffffff,metalness:0,
+  roughness:1,map:tex(albedo,true),normalMap:tex(normals),
+  normalScale:new T.Vector2(.65,.65),roughnessMap:tex(rmap)
+ });
 }
-// Fractures are sparse thin warped sheets, not repeating lattice boundaries.
-float basaltFracture(vec3 p){
- vec3 warp=vec3(basaltNoise(p*8.0+3.0),basaltNoise(p*9.0+17.0),basaltNoise(p*7.0+29.0))-.5;
- vec3 q=p+warp*.035;
- float fracturePlane=abs(dot(q,normalize(vec3(.73,.22,-.64)))+.17);
- float branch=abs(dot(q,normalize(vec3(-.19,.84,.51)))-.065);
- float gate=smoothstep(.37,.58,basaltNoise(p*6.0+51.0));
- float mainCrack=(1.0-smoothstep(.0018,.0055,fracturePlane))*gate;
- float branchCrack=(1.0-smoothstep(.0012,.004,branch))*smoothstep(.56,.72,basaltNoise(p*7.0+13.0));
- return max(mainCrack,branchCrack*.65);
+export function createStrandStone(T,{variant=0}={}){
+ // Cache once per renderer library instance; no per-brick GPU texture allocation.
+ let cache=createStrandStone.cache.get(T);
+ if(!cache){cache=Array.from({length:VARIANTS},(_,i)=>build(T,101+i*47));createStrandStone.cache.set(T,cache);}
+ return cache[((variant%VARIANTS)+VARIANTS)%VARIANTS];
 }
-`);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-vec3 p=vStonePosition;
-float footprint=max(length(dFdx(p)),length(dFdy(p)));
-float weather=basaltNoise(p*9.0+5.0);
-float broad=basaltNoise(p*3.5+27.0);
-float fine=basaltNoise(p*57.0+12.0);
-float fineFade=1.0-smoothstep(.008,.028,footprint);
-float pitFade=1.0-smoothstep(.006,.022,footprint);
-float crackFade=1.0-smoothstep(.003,.016,footprint);
-float pits=basaltPit(p*30.0)*pitFade;
-float fractures=basaltFracture(p)*crackFade;
-float weatherMask=smoothstep(.56,.77,weather*.72+broad*.28);
-vec3 base=mix(vec3(.18,.205,.215),vec3(.245,.26,.265),broad);
-base*=.965+.07*mix(.5,fine,fineFade);
-vec3 oxidized=vec3(.31,.245,.205);
-base=mix(base,oxidized,weatherMask*.24);
-base*=1.0-.36*pits-.47*fractures;
-diffuseColor.rgb*=base;
-`);
-  shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-roughnessFactor=clamp(roughnessFactor+.035*weatherMask-.065*pits,.86,.99);
-`);
- };
- material.customProgramCacheKey=()=> 'strand-stone-03-v1';
- return material;
-}
+createStrandStone.cache=new WeakMap();
