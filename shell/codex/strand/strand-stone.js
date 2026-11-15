@@ -2,7 +2,8 @@
 export function createStrandStone(T,{offset=[0,0,0]}={}){
  const material=new T.MeshStandardMaterial({name:'StrandStone / 03 · Basalt',color:0xffffff,roughness:.94,metalness:0});
  material.userData={finish:'strand-stone-03',rock:'weathered-basalt',offset};
- material.onBeforeCompile=shader=>{\n  shader.uniforms.uStoneOffset={value:new T.Vector3(...offset)};
+ material.onBeforeCompile=shader=>{
+  shader.uniforms.uStoneOffset={value:new T.Vector3(...offset)};
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vStonePosition;\nuniform vec3 uStoneOffset;');
   shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvStonePosition=position+uStoneOffset;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
