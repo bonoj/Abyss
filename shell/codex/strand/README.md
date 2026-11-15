@@ -26,7 +26,7 @@ Every new Chronicle entry MUST:
 
 ## Current handoff
 
-**Wood grain candidate fix (unverified on device):** `strand-wood.js` retains the original working shader and replaces only the high-multiplier lattice-hash `woodNoise` with bounded continuous trigonometric variation (commit `9024efc3`). The human's prior screenshot showed an abrupt panel-like grain discontinuity. A local Chromium WebGL test was attempted but its GPU process failed; there is no successful shader compile or browser render witness. Inspect the same face on mobile. Rollback to the original `strand-wood.js` at `fb2830499e1b204b7ed9546b46d19d5efe6ab69a` if it fails.
+**Wood grain (mobile verification pending):** `strand-wood.js` retains continuous volumetric ring warping from `9024efc3` and now replaces the high-frequency cross-wave fiber field with longitudinal striations that fade on X-facing end caps (commit `590355c7`). The human observed the previous seam improved but a checkerboard/wave pattern on end caps. Source readback is available; actual mobile compilation/rendering and the new appearance are not yet verified. Revert this latest wood commit if wood disappears or looks worse.
 
 **Terrain:** original `createTerrain({topology:'atlas'})` marching-tetrahedra extraction and flat shading restored. Both experimental smooth normals and constrained vertex relaxation were reverted after the human observed visual artifacts or no improvement. No experimental terrain smoothing remains active.
 
