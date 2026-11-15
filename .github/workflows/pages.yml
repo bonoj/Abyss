@@ -69,15 +69,9 @@ jobs:
       - name: Check packaged JavaScript syntax
         run: |
           find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | xargs -0 -r -n 1 node --check
-      - name: Package Pages artifact explicitly
-        run: tar -cvf github-pages.tar -C site .
-      - name: Upload Pages artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          name: github-pages
-          path: github-pages.tar
-          retention-days: 1
-          if-no-files-found: error
+          path: site
       - id: deployment
         uses: actions/deploy-pages@v4
       - name: Verify published experiment entries
