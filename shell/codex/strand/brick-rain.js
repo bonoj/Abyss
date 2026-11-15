@@ -15,7 +15,7 @@ export function createBrickRain(T,{parent,terrain,visibleEntity=()=>true}){
  const originalStoneFinishes=finishes.stone;
  // Pass 1: displace the existing rain in world coordinates; physics and picking share this frame.
  const stackOrigin={x:4.5,z:0};
- const SCALE=.5, w=.72*SCALE,h=.36*SCALE,d=.44*SCALE,b=.065*SCALE,bevel=.035*SCALE;
+ const SCALE=1, w=.72*SCALE,h=.36*SCALE,d=.44*SCALE,b=.065*SCALE,bevel=.035*SCALE;
  const strandIce=createStrandIce(T,{frost:.33,backlight:.66,bubbles:false});
  // Preserve the original palette; active ice bricks use StrandIce / 01.
  finishes.ice=[strandIce];
