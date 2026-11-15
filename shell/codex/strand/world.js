@@ -16,12 +16,6 @@ export function createStrand(){
  const edge=createEquatorialTreatment({terrain,parent:world.content});
  world.cycleEdge=edge.cycle;world.edgeMode=edge.getMode;
  const surface=createTerrainSurfaceQuery(terrain),offset=()=>({x:0,z:0});
- // Strand-only grazing fill from the opposite side of Athanor's warm key.
- // A real point light preserves normal-map response; no material emissive boost.
- const brickFill=new T.PointLight(0xe2edff,24,12,2);
- brickFill.name='Strand · masonry fill';
- brickFill.position.set(6,3,-3);
- world.content.add(brickFill);
  const landscape=createStrandGeology(T,terrain);
  const bricks=createBrickRain(T,{parent:world.content,terrain,visibleEntity:world.visibleEntity});
  const debris=createBeadDebris(T,{terrain,offset,innerRadius:world.inspect().vessel.innerRadius,parent:world.content,visibleEntity:world.visibleEntity});
