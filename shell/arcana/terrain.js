@@ -1,6 +1,6 @@
 import * as T from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 // Signed field, tetrahedral chunk extraction and aperture shader migrated from Wanderer Separated.
-export function createTerrain({topology='reference',testBorehole=null,relaxSurface=false}={}){
+export function createTerrain({topology='reference',testBorehole=null}={}){
  const NX=85,NY=21,NZ=85,MINY=-3.6,MAXY=3.6,WORLD_HALF=25.2,CHUNK=10,CX=Math.ceil((NX-1)/CHUNK),CZ=Math.ceil((NZ-1)/CHUNK);
  const depositedMaterial=new Map();
  const MATERIALS=[
@@ -93,71 +93,6 @@ export function createTerrain({topology='reference',testBorehole=null,relaxSurfa
     if(inside.length===1||outside.length===1){const inv=outside.length===1,A=(inv?outside:inside)[0],others=inv?inside:outside,q=others.map(i=>lerp(p[A],p[i],v[A],v[i]));if(inv)tri(q[0],q[2],q[1]);else tri(q[0],q[1],q[2])}
     else{const [a,b]=inside,[c,d]=outside,q0=lerp(p[a],p[c],v[a],v[c]),q1=lerp(p[a],p[d],v[a],v[d]),q2=lerp(p[b],p[c],v[b],v[c]),q3=lerp(p[b],p[d],v[b],v[d]);tri(q0,q1,q2);tri(q2,q1,q3)}
    }
-  }
-  if(relaxSurface&&pos.length){
-   // Conservative, single-pass Laplacian relaxation of existing vertices.
-   // Key duplicate triangle vertices by position; pin chunk boundaries so
-   // independently rebuilt neighbors cannot open cracks.
-   const key=(x,y,z)=>[x,y,z].map(v=>Math.round(v*1e6)).join(',');
-   const vertices=new Map(),indices=new Array(pos.length/3);
-   for(let i=0;i<pos.length;i+=3){
-    const x=pos[i],y=pos[i+1],z=pos[i+2],k=key(x,y,z);
-    let v=vertices.get(k);
-    if(!v){v={x,y,z,neighbors:new Set(),slots:[]};vertices.set(k,v)}
-    v.slots.push(i);indices[i/3]=v;
-   }
-   for(let i=0;i<indices.length;i+=3){
-    const a=indices[i],b=indices[i+1],d=indices[i+2];
-    if(a!==b){a.neighbors.add(b);b.neighbors.add(a)}
-    if(b!==d){b.neighbors.add(d);d.neighbors.add(b)}
-    if(d!==a){d.neighbors.add(a);a.neighbors.add(d)}
-   }
-   const updates=new Map(),stepX=2*WORLD_HALF/(NX-1),stepZ=2*WORLD_HALF/(NZ-1);
-   const edgeX0=xp(x0),edgeX1=xp(x1),edgeZ0=zp(z0),edgeZ1=zp(z1);
-   const sample=(x,y,z)=>fieldSample(x,y,z);
-   for(const v of vertices.values()){
-    if(!v.neighbors.size||Math.abs(v.x-edgeX0)<1e-5||Math.abs(v.x-edgeX1)<1e-5||
-       Math.abs(v.z-edgeZ0)<1e-5||Math.abs(v.z-edgeZ1)<1e-5)continue;
-    let ax=0,ay=0,az=0;
-    for(const n of v.neighbors){ax+=n.x;ay+=n.y;az+=n.z}
-    const inv=1/v.neighbors.size;
-    // Limit smoothing to a small fraction of a lattice cell.
-    const dx=Math.max(-.12,Math.min(.12,(ax*inv-v.x)*.3));
-    const dy=Math.max(-.09,Math.min(.09,(ay*inv-v.y)*.3));
-    const dz=Math.max(-.12,Math.min(.12,(az*inv-v.z)*.3));
-    let px=v.x+dx,py=v.y+dy,pz=v.z+dz;
-    // Project onto the interpolated zero isosurface. Occupancy is not a
-    // metric SDF, so use a finite-difference Newton correction with bounds.
-    for(let iteration=0;iteration<3;iteration++){
-     const value=sample(px,py,pz),e=.06;
-     const gx=(sample(px+e,py,pz)-sample(px-e,py,pz))/(2*e);
-     const gy=(sample(px,py+e,pz)-sample(px,py-e,pz))/(2*e);
-     const gz=(sample(px,py,pz+e)-sample(px,py,pz-e))/(2*e);
-     const g2=gx*gx+gy*gy+gz*gz;
-     if(!Number.isFinite(value)||g2<1e-8)break;
-     const t=Math.max(-.15,Math.min(.15,value/g2));
-     px-=gx*t;py-=gy*t;pz-=gz*t;
-    }
-    if(Number.isFinite(px+py+pz)&&Math.hypot(px-v.x,py-v.y,pz-v.z)<.22)
-     updates.set(v,[px,py,pz]);
-   }
-   // Reject a moved vertex if any adjacent face would flip or collapse.
-   const valid=new Set(updates.keys());
-   for(let i=0;i<indices.length;i+=3){
-    const vs=[indices[i],indices[i+1],indices[i+2]];
-    const normal=(points)=>{
-     const a=points[0],b=points[1],c=points[2];
-     const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2];
-     const vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
-     return [uy*vz-uz*vy,uz*vx-ux*vz,ux*vy-uy*vx];
-    };
-    const old=normal(vs.map(v=>[v.x,v.y,v.z]));
-    const next=normal(vs.map(v=>updates.get(v)||[v.x,v.y,v.z]));
-    const dot=old[0]*next[0]+old[1]*next[1]+old[2]*next[2];
-    const o=Math.hypot(...old),n=Math.hypot(...next);
-    if(n<o*.65||dot<o*n*.6)for(const v of vs)valid.delete(v);
-   }
-   for(const v of valid){const q=updates.get(v);for(const i of v.slots){pos[i]=q[0];pos[i+1]=q[1];pos[i+2]=q[2]}}
   }
   c.geometry.setAttribute('position',new T.Float32BufferAttribute(pos,3));c.geometry.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(pos.length).fill(.52),3));c.geometry.computeVertexNormals();
   c.geometry.computeBoundingSphere();c.geometry.computeBoundingBox();c.triangles=pos.length/9;
