@@ -13,19 +13,14 @@ export function createStrandWood(T,{offset=[0,0,0]}={}){
    '#include <begin_vertex>\nvWoodPosition=position+uWoodOffset;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 varying vec3 vWoodPosition;
-// Bounded, continuous volumetric variation. Avoid large-multiplier hash,
-// lattice-cell precision boundaries and independent face projections.
-float woodNoise(vec3 p){
- float a=sin(dot(p,vec3(1.31,2.17,1.73))+.43);
- float b=sin(dot(p,vec3(-2.83,1.19,2.41))+1.71);
- float c=sin(dot(p,vec3(3.07,-1.61,2.29))-.84);
- return .5+.23*a+.16*b+.10*c;
-}
 float woodRing(vec3 p){
  // Timber runs along X. YZ cross-sections expose annual growth rings.
  vec2 q=p.yz+vec2(.042,-.031);
- float warp=(woodNoise(vec3(p.x*1.8,q*9.0))-.5)*.012;
- float radius=length(q*vec2(1.0,1.15))+warp;
+ float radial=length(q*vec2(1.0,1.15));
+ // Warp only by radius and growth-axis position: no preferred Y/Z
+ // direction that could imprint vertical bands on the end grain.
+ float warp=.0035*sin(radial*17.0+p.x*.65+.4);
+ float radius=radial+warp;
  float cycles=radius*115.0;
  float width=fwidth(cycles);
  float band=abs(fract(cycles)-.5)*2.0;
@@ -51,6 +46,6 @@ diffuseColor.rgb*=mix(oakDark,oakLight,timberTone);
 roughnessFactor=clamp(roughnessFactor+(.5-woodRing(vWoodPosition))*.08,.65,.98);
 `);
  };
- material.customProgramCacheKey=()=> 'strand-wood-01-v4';
+ material.customProgramCacheKey=()=> 'strand-wood-01-v5';
  return material;
 }
